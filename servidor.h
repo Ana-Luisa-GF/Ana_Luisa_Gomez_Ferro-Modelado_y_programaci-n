@@ -16,9 +16,7 @@ private:
     struct sockaddr_in direccion; //tiene la IP, puerto y familia
     bool ejecutando;
     std::map<std::string, int> diccionario_clientes; //a futuro cuando autentique usuarios
-    std::vector<int> sockets_clientes;
-
-    std::string recibir_mensaje(int sock_clente);
+    std::string recibirMensaje(int sock_clente);
 
     void limpiarCadena(std::string &cadena);
 
@@ -29,6 +27,7 @@ public:
 
     void escuchar();
     bool iniciarServidor();
+    void aceptarCliente(int cliente_socket);
 };
 
 #endif

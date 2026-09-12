@@ -1,5 +1,5 @@
 #include "servidor.h"
-#include <unistd.h>
+#include <unistd.h> 
 #include <cerrno>  
 #include <cstring>
 #include <iostream>
@@ -61,31 +61,24 @@ bool servidor:: iniciarServidor(){
 void servidor:: escuchar(){
     int cliente_socket;
     struct sockaddr_in clientAddress;
-    socklen_t clientLen = sizeof(clientAddress);
-    std::string username;
+    socklen_t clientLen = sizeof(clientAddress); 
 
     printf("Servidor escuchando...\n");
 
     while(ejecutando){
 
         cliente_socket = accept(sockfd, (struct sockaddr*)&clientAddress, &clientLen);
+
         if(cliente_socket == -1){
             fprintf(stderr,"Error al intentar conectar al cliente: %s\n", strerror(errno));
             continue;
         }
-        sockets_clientes.push_back(cliente_socket);
-        printf("Nuevo un cliente\n");
-        printf("Esperando el username del cliente\n");
-        username = recibir_mensaje(cliente_socket);
 
-        if(diccionario_clientes.contains(username))
-            printf("Este usuario ya existia, lo actualizamos.\n");
-
-        diccionario_clientes.insert({username, cliente_socket});
+        aceptarCliente (cliente_socket);
     }
 }
 
-std::string servidor:: recibir_mensaje(int sock_cliente){
+std::string servidor:: recibirMensaje(int sock_cliente){
     
     char buffer[1024] = {0};
 
@@ -115,4 +108,33 @@ void servidor:: limpiarCadena(std::string &cadena){
         cadena.clear(); // Ocurre cuando el mensaje solo contenía "\r\n"
     }
 
+}
+
+void servidor:: aceptarCliente (int cliente_socket){
+    std::string username;
+    
+    printf("Nuevo un cliente\n");
+    printf("Esperando el username del cliente\n");
+    username = recibirMensaje(cliente_socket);
+
+    if (username.empty()) {
+        printf("El cliente se desconecto.\n");
+        close(cliente_socket);
+        return;
+    }
+
+    while(diccionario_clientes.find(username) != diccionario_clientes.end()){
+        std::string mensaje = "Este usuario ya existia, porfavor de otro nombre.\n";
+        send(cliente_socket, mensaje.c_str(), mensaje.length(), 0);
+        username = recibirMensaje(cliente_socket);
+
+        if (username.empty()) {
+            printf("El cliente se desconecto.\n");
+            close(cliente_socket);
+            return;
+        }
+    }
+
+    printf("agregamos al cliente.\n");
+    diccionario_clientes.insert({username, cliente_socket});
 }
