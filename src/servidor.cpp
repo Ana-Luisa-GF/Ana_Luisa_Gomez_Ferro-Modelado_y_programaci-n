@@ -10,6 +10,7 @@ servidor::servidor(int puerto){
     this->puerto = puerto;
     sockfd = -1;
     ejecutando = true;
+    direccion = {};
 }
 
 servidor:: ~servidor(){
