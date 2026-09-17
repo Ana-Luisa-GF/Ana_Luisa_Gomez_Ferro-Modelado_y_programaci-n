@@ -1,26 +1,26 @@
 #include <gtest/gtest.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include "servidor.h"
+#include "Servidor.h"
 
 /*Test que comprueba si se inicia el servidor correctamente con un puerto valido.*/
 TEST(ServidorTest, ServidorConPuertoValido) {
-    servidor servidor(1234);
+    Servidor servidor(1234);
     EXPECT_TRUE(servidor.iniciarServidor());
 }
 
 /*Test que comprueba que no se inicie un servidor con un puerto invalido.*/
 TEST(ServidorTest, ServidorConPuertoInvalido) {
-    servidor servidor(80);
+    Servidor servidor(80);
     EXPECT_FALSE(servidor.iniciarServidor());
 }
 
 /*Test que comprueba que no se incie un sevidor con un puerto en uso.*/
 TEST(ServidorTest,ServidorConPuertoEnUso) {
-    servidor servidor1(1234);
+    Servidor servidor1(1234);
     ASSERT_TRUE(servidor1.iniciarServidor()); 
 
-    servidor servidor2(1234);
+    Servidor servidor2(1234);
     EXPECT_FALSE(servidor2.iniciarServidor()); 
 }
 
@@ -28,11 +28,11 @@ TEST(ServidorTest,ServidorConPuertoEnUso) {
 TEST(ServidorTest, DestructorLiberaElPuerto) { 
     //Se crea y se destruye el servidor (y se libera el puerto).
     {
-        servidor servidor1(1234);
+        Servidor servidor1(1234);
         ASSERT_TRUE(servidor1.iniciarServidor());
     }
    
-    servidor servidor2(1234);
+    Servidor servidor2(1234);
     // Verificamos que pueda usar el puerto sin problema.
     EXPECT_TRUE(servidor2.iniciarServidor());
 }
@@ -49,7 +49,7 @@ TEST(ServidorTest, GuardaraCliente){
     std::string username = "nombre\r\n";
     send(socket_cliente, username.c_str(), username.length(), 0);
 
-    servidor servidor(1234);
+    Servidor servidor(1234);
     servidor.aceptarCliente(socket_servidor);
 
     //vemos que no e guarden los espacios
@@ -75,7 +75,7 @@ TEST(ServidorTest, RechazaNombreRepetido){
     std::string username_repetido = "nombre\r\n";
     std::string username_nuevo = "nombre_nuevo\r\n";
 
-    servidor servidor(1234);
+    Servidor servidor(1234);
     //guardamos un socket falso con el usarname "nombre" 
     servidor.diccionario_clientes["nombre"] = 100;
 

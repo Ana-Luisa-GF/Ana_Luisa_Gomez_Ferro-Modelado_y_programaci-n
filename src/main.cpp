@@ -1,11 +1,11 @@
 
-#include "servidor.h"
+#include "Servidor.h"
 #include <iostream>
 #include <cstdio>
 
 int main() {
     int puerto = 1234;
-    servidor mi_servidor(puerto);
+    Servidor mi_servidor(puerto);
 
     if (mi_servidor.iniciarServidor()) {
         mi_servidor.escuchar();

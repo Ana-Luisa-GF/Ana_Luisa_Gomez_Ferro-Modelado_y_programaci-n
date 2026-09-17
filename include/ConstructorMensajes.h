@@ -12,12 +12,10 @@ struct MensajeProtocolo {
     std::map<std::string, std::string> users;        
 };
 
-class constructor_mensajes {
+class ConstructorMensajes {
 public:
     
-    static std::string armarMensaje(const std::map<std::string, std::string>& datos, 
-                                     const std::vector<std::string>& usernames = {},
-                                     const std::map<std::string, std::string>& users = {});
+    static std::string armarMensaje(const MensajeProtocolo& msg);
     
     static MensajeProtocolo desarmarMensajes(const std::string& json);
 };
