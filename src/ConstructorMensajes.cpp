@@ -1,31 +1,31 @@
-#include "constructor_mensajes.h"
-#include "cJSON.h"
+extern "C" {
+    #include "cJSON.h"
+}
+#include "ConstructorMensajes.h"
 #include <string>
 #include <map>
 #include <vector>
 
-std::string constructor_mensajes::armarMensaje(const std::map<std::string, std::string>& datos, 
-                                                 const std::vector<std::string>& usernames,
-                                                 const std::map<std::string, std::string>& users){
+std::string ConstructorMensajes::armarMensaje(const MensajeProtocolo& msg){
 
             cJSON *json = cJSON_CreateObject(); 
 
-            for (const auto& par : datos) {
+            for (const auto& par : msg.datos) {
                 cJSON_AddStringToObject(json, par.first.c_str() , par.second.c_str());
             }
 
-            if (!usernames.empty()) {
+            if (!msg.usernames.empty()) {
                 cJSON *arreglo = cJSON_CreateArray();
 
-                for (const auto& usr : usernames) {
+                for (const auto& usr : msg.usernames) {
                     cJSON_AddItemToArray(arreglo, cJSON_CreateString(usr.c_str()));
                 }
                 cJSON_AddItemToObject(json, "usernames", arreglo);
             }
 
-            if(!users.empty()){
+            if(!msg.users.empty()){
                 cJSON *usuarios = cJSON_CreateObject(); 
-                for (const auto& par : users) {
+                for (const auto& par : msg.users) {
                     cJSON_AddStringToObject(usuarios, par.first.c_str() , par.second.c_str());
                 }
                 cJSON_AddItemToObject(json, "users", usuarios); 
@@ -40,7 +40,7 @@ std::string constructor_mensajes::armarMensaje(const std::map<std::string, std::
             return mensaje_final;
 }
 
-MensajeProtocolo constructor_mensajes::desarmarMensajes(const std::string& json_text){
+MensajeProtocolo ConstructorMensajes::desarmarMensajes(const std::string& json_text){
 
     MensajeProtocolo mensaje;
     cJSON *json = cJSON_Parse(json_text.c_str());
