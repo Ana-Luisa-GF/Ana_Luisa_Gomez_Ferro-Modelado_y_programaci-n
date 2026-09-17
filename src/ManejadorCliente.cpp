@@ -63,12 +63,13 @@ std::string ManejadorCliente::recibirMensaje(){
         bytes_leidos = recv(cliente.socket_cliente, buffer_temporal, bytes_a_pedir, 0);
 
         if (bytes_leidos == 0) {
-            //El cliente se desconecto
-                return ""; 
+            desconectarcliente();//El cliente se desconecto
+            return ""; 
         }
         
         if (bytes_leidos < 0) {
-             fprintf(stderr, "Error al recibir datos del socket %d: %s\n", cliente.socket_cliente, strerror(errno));
+            fprintf(stderr, "Error al recibir datos del socket %d: %s\n", cliente.socket_cliente, strerror(errno));
+            desconectarcliente();
             return "";
         }
 
@@ -83,6 +84,7 @@ std::string ManejadorCliente::recibirMensaje(){
     }
 
     fprintf(stderr, "Error: El mensaje superó el límite de 1MB sin salto de línea.\n");
+    desconectarcliente();
     buffer_acumulador.clear();
     return "";
 }
@@ -103,18 +105,30 @@ void ManejadorCliente::descifrarMensaje(std::string json_recibido){
 
     if(!msg.valido){
         fprintf(stderr, "Error: La estructura de un mensaje json es incorrecta.\n");
+        desconectarcliente();
+        return;
     }
 
     auto iterador =msg.datos.find("type");
 
     if(iterador == msg.datos.end()){
         fprintf(stderr, "Error: La estructura de un mensaje json es incorrecta.\n");
+        desconectarcliente();
+        return;
     }
 
     std::string type = iterador->second;
 
     if(type  == "IDENTIFY"){
         identificarCliente(msg);
+        return;                              
+    }
+    if(type ==  "DISCONNECTED"){
+        desconectarcliente();
+        return;
+    }
+    if(type ==  "STATUS"){
+        cambiarEstado(msg);
         return;
     }
         
@@ -126,6 +140,7 @@ void ManejadorCliente::identificarCliente(MensajeProtocolo &msg_cliente){
 
     if(iterador == msg_cliente.datos.end()){
         fprintf(stderr, "Error: La estructura de un mensaje json es incorrecta.\n");
+        desconectarcliente();
     }
     std::string user = iterador->second;
 
@@ -154,4 +169,40 @@ void ManejadorCliente::identificarCliente(MensajeProtocolo &msg_cliente){
         return;
     }
 }
+
+void ManejadorCliente::cambiarEstado(MensajeProtocolo &msg_cliente){
+     auto iterador =msg_cliente.datos.find("status");
+
+    if(iterador == msg_cliente.datos.end()){
+        fprintf(stderr, "Error: La estructura de un mensaje json es incorrecta.\n");
+        desconectarcliente();
+    }
+    std::string nuevo_status = iterador->second;
+
+    if(nuevo_status != "AWAY" && nuevo_status != "ACTIVE" && nuevo_status != "BUSY"){
+        fprintf(stderr, "Error: El nuevo estado del cliente es invalido.\n");
+        desconectarcliente();
+    }
+
+    if(nuevo_status == cliente.estado)
+        return;
+
+    cliente.estado = nuevo_status;
+    std::vector<int> sockets = contenedor.agregarcliente(cliente);
+        
+    MensajeProtocolo msg_servidor;
+    msg_servidor.datos["type"]= "NEW_STATUS";
+    msg_servidor.datos["username"]= cliente.username;
+    msg_servidor.datos["status"]= cliente.estado;
+    std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
+
+    for (int sck : sockets) 
+        send(sck, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
+};
+
+
+void ManejadorCliente::desconectarcliente(){
+    contenedor.eliminarCliente(cliente.username);
+    ejecutando = false;
+};
 

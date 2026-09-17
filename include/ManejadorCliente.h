@@ -15,9 +15,14 @@ private:
     std::string buffer_acumulador;
     bool ejecutando;
     ManejadorEstados& contenedor;
+    
     std::string recibirMensaje();
 
     void identificarCliente(MensajeProtocolo &msg);
+    void cambiarEstado(MensajeProtocolo &msg);
+    void desconectarcliente (
+
+    );
     
 public:
 
@@ -28,5 +33,6 @@ public:
     void escucharCliente();
     void limpiarCadena(std::string &cadena);
     void descifrarMensaje(std::string mensaje);
+    
 };
 #endif
