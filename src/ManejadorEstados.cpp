@@ -17,3 +17,9 @@ std::vector<int> ManejadorEstados::agregarcliente(datosCliente nuevo_cliente){
     return sockets;
     
 }
+
+void ManejadorEstados::eliminarCliente(std::string username){
+    if(obtenerCliente(username))
+        clientes.erase(username);
+    //y eliminarlo de los cuartos en que este
+};

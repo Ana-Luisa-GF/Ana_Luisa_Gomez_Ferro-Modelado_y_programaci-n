@@ -13,8 +13,11 @@ class ManejadorEstados{
     public:
         ManejadorEstados();
         ~ManejadorEstados();
+         
         bool obtenerCliente(std::string username);
         std::vector<int> agregarcliente(datosCliente nuevo_cliente);
-        std::map<std::string, std::string> getListaCLientes(); 
+        std::map<std::string, std::string> getListaClientes(); 
+        void eliminarCliente(std::string username);
+
 };
 #endif
