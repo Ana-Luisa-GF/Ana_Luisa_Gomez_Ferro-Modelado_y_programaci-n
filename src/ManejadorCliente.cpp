@@ -131,6 +131,9 @@ void ManejadorCliente::descifrarMensaje(std::string json_recibido){
         cambiarEstado(msg);
         return;
     }
+    if(type == "USERS"){
+        getListaUsuarios();
+    }
         
 }
 
@@ -206,3 +209,12 @@ void ManejadorCliente::desconectarcliente(){
     ejecutando = false;
 };
 
+
+void ManejadorCliente::getListaUsuarios(){
+    std::map<std::string,std::string> usuarios = contenedor.getListaClientes();
+    MensajeProtocolo msg_servidor;
+    msg_servidor.datos["type"]= "USER_LIST";
+    msg_servidor.users=usuarios;
+    std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
+    send(cliente.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
+}
