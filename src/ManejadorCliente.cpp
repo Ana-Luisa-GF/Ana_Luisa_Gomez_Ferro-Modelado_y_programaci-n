@@ -146,12 +146,13 @@ void ManejadorCliente::identificarCliente(MensajeProtocolo &msg_cliente){
         desconectarcliente();
     }
     std::string user = iterador->second;
+    
 
     if(!contenedor.obtenerCliente(user)){
-        cliente.username = iterador->second;
+        cliente.username = user;
         cliente.estado = "ACTIVE";
         std::vector<int> sockets = contenedor.agregarcliente(cliente);
-        
+
         MensajeProtocolo msg_servidor;
         msg_servidor.datos["type"]= "NEW_USER";
         msg_servidor.datos["username"]= cliente.username;
