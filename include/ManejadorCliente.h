@@ -20,9 +20,8 @@ private:
 
     void identificarCliente(MensajeProtocolo &msg);
     void cambiarEstado(MensajeProtocolo &msg);
-    void desconectarcliente (
-
-    );
+    void desconectarcliente ();
+    void getListaUsuarios();
     
 public:
 
