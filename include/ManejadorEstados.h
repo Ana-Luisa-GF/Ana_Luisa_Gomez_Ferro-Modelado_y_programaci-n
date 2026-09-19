@@ -7,22 +7,54 @@
 #include <shared_mutex>
 #include <mutex>
 
-
+/**
+ * @class ManejadorEstados
+ * @brief Administra el registro y peticiones de los clientes conectados al servidor.
+ * 
+ * Esta clase actua como un contenedor en memoria para almacenar la información 
+ * de cada usuario activo y los cuartos que existen. Utiliza un exclusión mutua (std::mutex) para 
+ * garantizar la integridad de los datos cuando múltiples hilos de clientes acceden o modifican 
+ * el estado simultáneamente.
+ */
 class ManejadorEstados{
 
     private:
-        std::map<std::string, datosCliente> clientes;
-        mutable std::shared_mutex mutex_clientes;
+
+        std::map<std::string, datosCliente> clientes; /**< Diccionario que asocia el nombre del usuario con su estructura de datos.*/
+        mutable std::shared_mutex mutex_clientes; /**< Mutex para proteger el acceso concurrente al diccionario 'clientes'*/
 
     public:
+        /**
+         * @brief Constructor por defecto de ManejadorEstados.
+         */
         ManejadorEstados();
+
+        /**
+         * @brief Destructor de ManejadorEstados.
+         */
         ~ManejadorEstados();
          
         bool obtenerCliente(const std::string& username) const;
 
+        /**
+         * @brief Registra un cliente en el servidor.
+         * @param username Nombre del usuario que sirve como clave de registro.
+         * @param cliente Estructura datosCliente con la información del cliente.
+         */
         std::vector<int> agregarcliente(datosCliente nuevo_cliente);
-        std::map<std::string, std::string> getListaClientes()const; 
+
+        /**
+         * @brief Remueve a un cliente de la lista principal de usuarios y de los cuartos a los que pertenecia.
+         * @param username Nombre del usuario a eliminar.
+         */
         void eliminarCliente(const std::string& username);
 
+        /**
+         * @brief Entrega la lista de clientes.
+         *@return Diccionario con el nombre de usuario de cada cliente asociado a su estado.
+         */
+        std::map<std::string, std::string> getListaClientes()const; 
+
+        
 };
 #endif
