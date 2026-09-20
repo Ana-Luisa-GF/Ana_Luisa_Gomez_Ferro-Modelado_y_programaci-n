@@ -22,25 +22,31 @@ class ManejadorCliente{
 
 private:
     datosCliente cliente; /**< Estructura con la información del cliente (socket, IP, username). */
+
     std::string buffer_acumulador; /**< Búfer de memoria para guardar mensajes incompletos o partidos del socket. */
+
     bool ejecutando; /**< Bandera de control para mantener activo el bucle de lectura del socket. */
+
     ManejadorEstados& contenedor; /**< contenedor global de estados (compartido entre todos los hilos). */
     
+    bool identificado;
+
     /**
      * @brief Lee bloques de bytes del socket llamando a la funcion recv().
      * @return std::string Cadena con los datos leídos del socket o vacía si ocurre un error/desconexión.
      */
     std::string recibirMensaje();
 
+    std::string encontrarCampo(std::string campo, MensajeProtocolo msg);   //comentaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaar
     /**
      * @brief Procesa el mensaje inicial registro del usuario.
-     * @param msg Estructura con los datos  de la petición "IDENTIFY".
+     * @param json_recibido con los datos  de la petición "IDENTIFY".
      * 
      * Valida que el nombre de usuario no esté duplicado en el ManejadorEstados, que no mida 
      * mas de 8 caracteres, registra la cliente, notifica a los otros clientes y responde 
      * con una confirmación o rechazo en formato JSON.
      */
-    void identificarCliente(MensajeProtocolo &msg);
+    void identificarCliente(std::string json_recibido);
 
     /**
      * @brief Procesa la solicitud para cambiar el estado del cliente.
@@ -63,6 +69,16 @@ private:
      * obtenida de ManejadorEstados y la envía por el socket.
      */
     void getListaUsuarios();
+
+    void mensajePrivado(MensajeProtocolo &msg);
+
+    void mensajePublico(MensajeProtocolo &msg);
+
+    void crearSala(MensajeProtocolo &msg);
+
+    void invitarSala(MensajeProtocolo &msg);
+    
+    void aceptarInvitacion(MensajeProtocolo &msg);
     
 public:
     /**

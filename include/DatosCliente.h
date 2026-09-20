@@ -3,6 +3,8 @@
 #define DATOS_CLIENTE_H
 
 #include <string>
+#include <unordered_set>
+
 /**
  * @struct datosCliente
  * @brief Estructura que guarda los datos de un cliente.
@@ -14,6 +16,8 @@ struct datosCliente {
     int socket_cliente; /**< Descriptor de archivo asociado al socket del cliente. */                          
     std::string username; /**< Nombre de usuario del cliente. */
     std::string estado; /**< Estado o disponibilidad del usuario */
+    std::unordered_set<std::string> salas;    
+    std::unordered_set<std::string> invitaciones;    
 };
 
 #endif

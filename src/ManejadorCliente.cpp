@@ -7,13 +7,16 @@
 #include <cstdio>
 #include <vector>
 
+
 ManejadorCliente::ManejadorCliente(int sck_cliente, ManejadorEstados& estado)
     :contenedor(estado){
     cliente.socket_cliente = sck_cliente;
     cliente.username = "";
     cliente.estado = "";
     ejecutando = true;
+    identificado=false;
 }
+
 
 ManejadorCliente:: ~ManejadorCliente(){
     if (cliente.socket_cliente >= 0) {
@@ -31,6 +34,10 @@ void ManejadorCliente::escuchar(){
     send(cliente.socket_cliente, mensaje_servidor.c_str(), mensaje_servidor.length(), 0);
 
     std::string mensaje_cliente= "";
+
+    mensaje_cliente = recibirMensaje();
+    identificarCliente(mensaje_cliente);
+
     while(ejecutando){
         mensaje_cliente = recibirMensaje();
         descifrarMensaje(mensaje_cliente);
@@ -89,41 +96,50 @@ std::string ManejadorCliente::recibirMensaje(){
     return "";
 }
 
+
 void ManejadorCliente:: limpiarCadena(std::string &cadena){
     size_t pos = cadena.find_last_not_of("\r\n");
 
     if (pos != std::string::npos) {
         cadena.erase(pos + 1);
     } else {
-        cadena.clear(); // Ocurre cuando el mensaje solo contenía "\r\n"
+        cadena.clear(); 
     }
-
 }
 
-void ManejadorCliente::descifrarMensaje(std::string json_recibido){
-    MensajeProtocolo msg = ConstructorMensajes::desarmarMensajes(json_recibido);
-
+std::string ManejadorCliente::encontrarCampo(std::string campo, MensajeProtocolo msg){
     if(!msg.valido){
-        fprintf(stderr, "Error: La estructura de un mensaje json es incorrecta.\n");
-        desconectarcliente();
-        return;
+    fprintf(stderr, "Error: La estructura de un mensaje json es incorrecta.\n");
+    desconectarcliente();
+    return "";
     }
 
-    auto iterador =msg.datos.find("type");
+    auto iterador =msg.datos.find(campo);
 
     if(iterador == msg.datos.end()){
         fprintf(stderr, "Error: La estructura de un mensaje json es incorrecta.\n");
         desconectarcliente();
-        return;
+        return "";
     }
 
-    std::string type = iterador->second;
+    return iterador->second;
+}
+
+
+void ManejadorCliente::descifrarMensaje(std::string json_recibido){
+    MensajeProtocolo msg = ConstructorMensajes::desarmarMensajes(json_recibido);
+
+    std::string type = encontrarCampo("type",msg);
+
+    if(type == "")
+        return;
 
     if(type  == "IDENTIFY"){
-        identificarCliente(msg);
-        return;                              
+        fprintf(stderr, "Error: El cliente se intento identificar 2 veces.\n");
+        desconectarcliente();
+        return;                            
     }
-    if(type ==  "DISCONNECTED"){
+    if(type ==  "DISCONNECT"){
         desconectarcliente();
         return;
     }
@@ -133,22 +149,58 @@ void ManejadorCliente::descifrarMensaje(std::string json_recibido){
     }
     if(type == "USERS"){
         getListaUsuarios();
+        return;
+    }
+    if(type == "TEXT"){
+        mensajePrivado(msg);
+        return;
+    }
+    if(type ==  "PUBLIC_TEXT"){
+        mensajePublico(msg);
+        return;
+    }
+    if(type == "NEW_ROOM"){
+        crearSala(msg);
+        return;
+    }
+    if(type == "INVITE"){
+        invitarSala(msg);
+        return;
+    }
+    if(type == "JOIN_ROOM"){
+        aceptarInvitacion(msg);
+        return;
     }
         
 }
 
-void ManejadorCliente::identificarCliente(MensajeProtocolo &msg_cliente){
 
-    auto iterador =msg_cliente.datos.find("username");
+void ManejadorCliente::identificarCliente(std::string json_recibido){
 
-    if(iterador == msg_cliente.datos.end()){
-        fprintf(stderr, "Error: La estructura de un mensaje json es incorrecta.\n");
+    MensajeProtocolo msg_cliente = ConstructorMensajes::desarmarMensajes(json_recibido);
+
+    std::string type = encontrarCampo("type",msg_cliente);
+    if(type == "")
+        return;
+
+    if(type  != "IDENTIFY"){
+        fprintf(stderr, "Error: El cliente intento hacer una operación antes de identificarse.\n");
         desconectarcliente();
+        return;                           
     }
-    std::string user = iterador->second;
-    
 
-    if(!contenedor.obtenerCliente(user)){
+    std::string user = encontrarCampo("username",msg_cliente);
+    if(user == "")
+        if(!ejecutando)
+            return;
+    
+    if (user.length() > 8){
+        fprintf(stderr, "Error: El nombre del cliente supera el tamaño permitido.\n");
+        desconectarcliente();
+        return;
+    }
+
+    if(!contenedor.hayCliente(user)){
         cliente.username = user;
         cliente.estado = "ACTIVE";
         std::vector<int> sockets = contenedor.agregarcliente(cliente);
@@ -158,8 +210,20 @@ void ManejadorCliente::identificarCliente(MensajeProtocolo &msg_cliente){
         msg_servidor.datos["username"]= cliente.username;
         std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
 
-        for (int sck : sockets) 
-            send(sck, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
+        for (int sck : sockets)
+            if(sck != cliente.socket_cliente)
+              send(sck, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
+        
+        msg_servidor=MensajeProtocolo{};
+        msg_servidor.datos["type"]= "RESPONSE";
+        msg_servidor.datos["operation"]= "IDENTIFY";
+        msg_servidor.datos["result"]= "SUCCESS";
+        msg_servidor.datos["extra"]= cliente.username;
+
+        mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
+        send(cliente.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
+
+
     }else{
         MensajeProtocolo msg_servidor;                             
         msg_servidor.datos["type"]= "RESPONSE";
@@ -169,23 +233,21 @@ void ManejadorCliente::identificarCliente(MensajeProtocolo &msg_cliente){
 
         std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
         send(cliente.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
-        close(cliente.socket_cliente); //CAMBIAR POR ALGO MAS SEGURO
+        desconectarcliente();
         return;
     }
 }
 
-void ManejadorCliente::cambiarEstado(MensajeProtocolo &msg_cliente){
-     auto iterador =msg_cliente.datos.find("status");
+void ManejadorCliente::cambiarEstado(MensajeProtocolo &msg){
 
-    if(iterador == msg_cliente.datos.end()){
-        fprintf(stderr, "Error: La estructura de un mensaje json es incorrecta.\n");
-        desconectarcliente();
-    }
-    std::string nuevo_status = iterador->second;
+    std::string nuevo_status = encontrarCampo("status",msg);
+    if(nuevo_status == "")
+        return;
 
     if(nuevo_status != "AWAY" && nuevo_status != "ACTIVE" && nuevo_status != "BUSY"){
         fprintf(stderr, "Error: El nuevo estado del cliente es invalido.\n");
         desconectarcliente();
+        return;
     }
 
     if(nuevo_status == cliente.estado)
@@ -200,15 +262,16 @@ void ManejadorCliente::cambiarEstado(MensajeProtocolo &msg_cliente){
     msg_servidor.datos["status"]= cliente.estado;
     std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
 
-    for (int sck : sockets) 
-        send(sck, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
-};
+    for (int sck : sockets)
+        if(sck != cliente.socket_cliente)
+            send(sck, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
+}
 
 
 void ManejadorCliente::desconectarcliente(){
     contenedor.eliminarCliente(cliente.username);
     ejecutando = false;
-};
+}
 
 
 void ManejadorCliente::getListaUsuarios(){
@@ -219,3 +282,181 @@ void ManejadorCliente::getListaUsuarios(){
     std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
     send(cliente.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
 }
+
+
+void ManejadorCliente::mensajePrivado(MensajeProtocolo &msg){
+
+    std::string usuario_destino = encontrarCampo("username",msg);
+    if(!ejecutando)
+        return;
+
+    MensajeProtocolo msg_servidor;
+
+    if(!contenedor.hayCliente(usuario_destino)){
+        msg_servidor.datos["type"]= "RESPONSE";        
+        msg_servidor.datos["operation"]= "TEXT";   
+        msg_servidor.datos["result"]= "NO_SUCH_USER";
+        msg_servidor.datos["extra"]= usuario_destino;
+        std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
+        send(cliente.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
+        return;
+    }
+
+    std::string mensaje = encontrarCampo("text",msg);
+    if(!ejecutando)
+        return;
+
+    datosCliente cliente_destino = contenedor.darCliente(usuario_destino);
+
+    msg_servidor.datos["type"]=  "TEXT_FROM";
+    msg_servidor.datos["username"]= cliente.username;
+    msg_servidor.datos["text"]= mensaje;
+    std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
+    send(cliente_destino.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
+
+}
+
+
+void ManejadorCliente::mensajePublico(MensajeProtocolo &msg){
+    std::string mensaje =encontrarCampo("text",msg);
+    if(!ejecutando)
+     return;
+
+    MensajeProtocolo msg_servidor;
+    msg_servidor.datos["type"] = "PUBLIC_TEXT_FROM";
+    msg_servidor.datos["username"] = cliente.username;
+    msg_servidor.datos["text"] = mensaje;
+
+    std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
+
+    std::vector<int> sockets = contenedor.clientes_mensajePublico();
+    for (int sck : sockets)
+        if(sck != cliente.socket_cliente)
+            send(sck, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
+}
+
+
+void ManejadorCliente::crearSala(MensajeProtocolo &msg){
+    std::string sala = encontrarCampo("roomname",msg);
+    if(!ejecutando)
+            return;
+
+    MensajeProtocolo msg_servidor;
+
+    bool sala_creada =contenedor.crearSala(sala,cliente);
+
+    if(!sala_creada){
+        msg_servidor.datos["type"]= "RESPONSE";
+        msg_servidor.datos["operation"]= "NEW_ROOM";
+        msg_servidor.datos["result"]= "ROOM_ALREADY_EXISTS";
+        msg_servidor.datos["extra"]= sala;
+        std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
+        send(cliente.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
+        return;
+    }
+
+    msg_servidor.datos["type"]= "RESPONSE";
+        msg_servidor.datos["operation"]= "NEW_ROOM";
+        msg_servidor.datos["result"]= "SUCCESS";
+        msg_servidor.datos["extra"]= sala;
+        std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
+        send(cliente.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0); 
+        cliente.salas.insert(sala);   
+        contenedor.actualizarCliente(cliente);
+}
+
+
+void ManejadorCliente::invitarSala(MensajeProtocolo &msg){
+    std::string sala = encontrarCampo("roomname",msg);
+    if(!ejecutando)
+        return;
+
+    std::vector<std::string> usernames = msg.usernames;
+    MensajeProtocolo msg_servidor;
+
+    if(!contenedor.haySala(sala)){
+        msg_servidor.datos["type"]= "RESPONSE";
+        msg_servidor.datos["operation"]= "INVITE";
+        msg_servidor.datos["result"]= "NO_SUCH_ROOM";
+        msg_servidor.datos["extra"]= sala;
+        std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
+        send(cliente.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
+        return;
+    }
+
+    if(cliente.salas.find(sala) == cliente.salas.end())
+        return;
+
+    msg_servidor.datos["type"]= "RESPONSE";
+    msg_servidor.datos["operation"]= "INVITE";
+    msg_servidor.datos["result"]= "NO_SUCH_USER";
+
+    for (std::string user : usernames)
+        if(!contenedor.hayCliente(user)){
+            msg_servidor.datos["extra"]= user;
+            std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
+            send(cliente.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
+            return;
+        }
+    
+    msg_servidor = MensajeProtocolo{};  
+
+    msg_servidor.datos["type"]= "INVITATION";
+    msg_servidor.datos["username"]= cliente.username;
+    msg_servidor.datos["roomname"]= sala;
+
+    std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
+    for (std::string user : usernames){
+        datosCliente invitado = contenedor.darCliente(user);
+        if(invitado.invitaciones.find(sala) != invitado.invitaciones.end() ||
+            invitado.salas.find(sala) != invitado.salas.end() )
+        continue;
+        send(invitado.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
+        contenedor.agregarInvitacion(user, sala);
+    }
+}
+
+
+void ManejadorCliente::aceptarInvitacion(MensajeProtocolo &msg){
+    std::string sala = encontrarCampo("roomname",msg);
+    if(!ejecutando)
+        return;
+
+    MensajeProtocolo msg_servidor;
+
+    msg_servidor.datos["type"]= "RESPONSE";
+    msg_servidor.datos["operation"]= "JOIN_ROOM";
+    msg_servidor.datos["extra"]= sala;
+
+    if(!contenedor.haySala(sala)){
+        msg_servidor.datos["result"]= "NO_SUCH_ROOM";
+        std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
+        send(cliente.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
+        return;
+    }
+    if(cliente.invitaciones.find(sala) == cliente.invitaciones.end()){
+        msg_servidor.datos["result"]= "NOT_INVITED";
+        std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
+        send(cliente.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
+        return;
+    }
+
+    msg_servidor.datos["result"]= "SUCCESS";
+    contenedor.entrarSala(cliente.username,sala);
+    cliente.invitaciones.erase(sala);
+    cliente.salas.insert(sala);
+
+    msg_servidor = MensajeProtocolo{};
+
+    msg_servidor.datos["type"]= "JOINED_ROOM";
+    msg_servidor.datos["roomname"]= sala;
+    msg_servidor.datos["username"]= cliente.username;
+
+    std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
+    std::vector<datosCliente> integrantes = contenedor.cuartoUsuarios(sala);
+    for (const datosCliente& integrante: integrantes)
+        send(integrante.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
+
+}
+
+
