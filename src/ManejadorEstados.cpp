@@ -105,7 +105,6 @@ void ManejadorEstados::entrarSala(const std::string& username, const std::string
     it_cliente->second.invitaciones.erase(roomname); 
     it_cliente->second.salas.insert(roomname);
 
-
     lock_clientes.unlock();
 
     std::unique_lock<std::shared_mutex> lock_cuartos(mutex_cuartos);
@@ -125,4 +124,6 @@ std::vector<datosCliente> ManejadorEstados::cuartoUsuarios(const std::string& ro
   
     for (const auto& par : it->second) 
         integrantes.push_back(par.second);
+
+    return integrantes;
 }

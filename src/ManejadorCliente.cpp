@@ -434,7 +434,9 @@ void ManejadorCliente::aceptarInvitacion(MensajeProtocolo &msg){
         send(cliente.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
         return;
     }
-    if(cliente.invitaciones.find(sala) == cliente.invitaciones.end()){
+
+    datosCliente estado_global = contenedor.darCliente(cliente.username);
+    if(estado_global.invitaciones.find(sala) == estado_global.invitaciones.end()){
         msg_servidor.datos["result"]= "NOT_INVITED";
         std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
         send(cliente.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
@@ -443,8 +445,6 @@ void ManejadorCliente::aceptarInvitacion(MensajeProtocolo &msg){
 
     msg_servidor.datos["result"]= "SUCCESS";
     contenedor.entrarSala(cliente.username,sala);
-    cliente.invitaciones.erase(sala);
-    cliente.salas.insert(sala);
 
     msg_servidor = MensajeProtocolo{};
 
