@@ -29,7 +29,7 @@ private:
 
     ManejadorEstados& contenedor; /**< contenedor global de estados (compartido entre todos los hilos). */
     
-    bool identificado;
+    bool identificado; /**< Indica si el cliente paso la dentificación inicial. */
 
     /**
      * @brief Lee bloques de bytes del socket llamando a la funcion recv().
@@ -37,7 +37,15 @@ private:
      */
     std::string recibirMensaje();
 
-    std::string encontrarCampo(std::string campo, MensajeProtocolo msg);   //comentaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaar
+    /**
+     * @brief Retorna el valor de un campo de un objeto MensajeProtocolo.
+     * @param campo Nombre de la clave que se desea consultar.
+     * @param msg Estructura con los datos del mensaje.
+     * @return std::string Valor del campo consultado o cadena vacía si la clave no existe.
+     */
+    std::string encontrarCampo(std::string campo, MensajeProtocolo msg);   
+
+
     /**
      * @brief Procesa el mensaje inicial registro del usuario.
      * @param json_recibido con los datos  de la petición "IDENTIFY".
@@ -70,16 +78,54 @@ private:
      */
     void getListaUsuarios();
 
+    /**
+     * @brief envia un mensaje privado a un usuario específico ("TEXT").
+     * @param msg Estructura con el destinatario y el contenido del texto.
+     */
     void mensajePrivado(MensajeProtocolo &msg);
 
+    /**
+     * @brief envia un mensaje público a todos los usuarios ("PUBLIC_TEXT").
+     * @param msg Estructura con el contenido del mensaje.
+     */
     void mensajePublico(MensajeProtocolo &msg);
 
+    /**
+     * @brief Solicita la creación de un nuevo cuarto ("NEW_ROOM").
+     * @param msg Estructura con el nombre de la nueva sala.
+     */
     void crearSala(MensajeProtocolo &msg);
 
+    /**
+     * @brief invita a uno o mas usuarios a una sala ("INVITE").
+     * @param msg Estructura con la lista de destinatarios y el nombre de la sala.
+     */
     void invitarSala(MensajeProtocolo &msg);
     
+    /**
+     * @brief Mete al cliente a una sala a la que fue invitado("JOIN_ROOM").
+     * @param msg Estructura con la sala a la que desea unirse.
+     */
     void aceptarInvitacion(MensajeProtocolo &msg);
+
+    /**
+     * @brief Renvia un mensaje a todos los integrantes de una sala ("ROOM_TEXT").
+     * @param msg Estructura con el mensaje y el nombre de la sala.
+     */
+    void mensajeSala(MensajeProtocolo &msg);
     
+    /**
+     * @brief retorna la lista de usuarios de una sala ("ROOM_USERS").
+     * @param msg Estructura con el nombre de la sala.
+     */
+    void getUsuariosSala(MensajeProtocolo &msg);
+
+    /**
+     * @brief saca a un usuario de una sala ("LEAVE_ROOM").
+     * @param msg Estructura con el nombre de la sala a dejar.
+     */
+    void abandonarSala(MensajeProtocolo &msg);
+
 public:
     /**
      * @brief Constructor de ManejadorCliente.
