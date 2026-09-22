@@ -83,38 +83,48 @@ bool ManejadorEstados::crearSala(const std::string& roomname, datosCliente clien
     return true;
  }
 
-bool ManejadorEstados::agregarInvitacion(const std::string& username, const std::string& sala) {
+void ManejadorEstados::agregarInvitacion(const std::string& username, const std::string& sala) {
     std::unique_lock<std::shared_mutex> lock(mutex_clientes);
     auto it = clientes.find(username);
     if (it != clientes.end()) {
         it->second.invitaciones.insert(sala);
-        return true;
+        return;
     }
-    return false;
+    return;
 }
 
 void ManejadorEstados::entrarSala(const std::string& username, const std::string& roomname){
-    std::unique_lock<std::shared_mutex> lock_clientes(mutex_clientes);
-    auto it_cliente = clientes.find(username);
+    bool sala_existe = false;
+    datosCliente cliente_datos;
 
-    if (it_cliente == clientes.end()) 
+    {
+        std::shared_lock<std::shared_mutex> lock_cli(mutex_clientes);
+        auto it_cli = clientes.find(username);
+        if (it_cli == clientes.end()) 
+            return; 
+
+        cliente_datos = it_cli->second; 
+    }
+
+    {
+        std::unique_lock<std::shared_mutex> lock_cuartos(mutex_cuartos);
+        auto it_sala = contenedor_cuartos.find(roomname);
+        if (it_sala != contenedor_cuartos.end()) {
+            sala_existe = true;
+            it_sala->second[username] = cliente_datos; 
+        }
+    }
+    if (!sala_existe) 
         return;
 
-    datosCliente cliente = it_cliente->second;
-
-    it_cliente->second.invitaciones.erase(roomname); 
-    it_cliente->second.salas.insert(roomname);
-
-    lock_clientes.unlock();
-
-    std::unique_lock<std::shared_mutex> lock_cuartos(mutex_cuartos);
-    auto it_sala = contenedor_cuartos.find(roomname);
-    if (it_sala == contenedor_cuartos.end()){
-        it_cliente->second.salas.erase(roomname);
-        return;
+    {
+        std::unique_lock<std::shared_mutex> lock_cli(mutex_clientes);
+        auto it_cli = clientes.find(username);
+        if (it_cli != clientes.end()) {
+            it_cli->second.invitaciones.erase(roomname); 
+            it_cli->second.salas.insert(roomname);
+        }
     } 
- 
-    it_sala->second[username] =cliente;
 }
 
 std::vector<datosCliente> ManejadorEstados::cuartoUsuarios(const std::string& roomname)const{
@@ -126,4 +136,31 @@ std::vector<datosCliente> ManejadorEstados::cuartoUsuarios(const std::string& ro
         integrantes.push_back(par.second);
 
     return integrantes;
+}
+
+
+void ManejadorEstados::salirSala(const std::string& username, const std::string& roomname){
+   {
+        std::unique_lock<std::shared_mutex> lock_clientes(mutex_clientes);
+        auto it_cliente = clientes.find(username);
+
+        if (it_cliente != clientes.end()) {
+            it_cliente->second.invitaciones.erase(roomname); 
+            it_cliente->second.salas.erase(roomname);
+        }
+    } 
+
+
+    {
+        std::unique_lock<std::shared_mutex> lock_cuartos(mutex_cuartos);
+        auto it_sala = contenedor_cuartos.find(roomname);
+
+        if (it_sala != contenedor_cuartos.end()){
+            it_sala->second.erase(username);
+
+            if(it_sala->second.empty())
+                contenedor_cuartos.erase(roomname);
+        }
+            
+    }
 }

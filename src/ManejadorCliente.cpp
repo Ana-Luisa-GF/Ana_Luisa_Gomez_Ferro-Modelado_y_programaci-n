@@ -40,9 +40,20 @@ void ManejadorCliente::escuchar(){
 
     while(ejecutando){
         mensaje_cliente = recibirMensaje();
+
+        if (mensaje_cliente.empty()) {
+            desconectarcliente(); 
+            return;
+        }
+
         descifrarMensaje(mensaje_cliente);
     }
 
+    if (cliente.socket_cliente >= 0) {
+        shutdown(cliente.socket_cliente, SHUT_RDWR); 
+        close(cliente.socket_cliente);               
+        cliente.socket_cliente = -1;
+    }
 }
 
 
@@ -70,13 +81,11 @@ std::string ManejadorCliente::recibirMensaje(){
         bytes_leidos = recv(cliente.socket_cliente, buffer_temporal, bytes_a_pedir, 0);
 
         if (bytes_leidos == 0) {
-            desconectarcliente();//El cliente se desconecto
             return ""; 
         }
         
         if (bytes_leidos < 0) {
             fprintf(stderr, "Error al recibir datos del socket %d: %s\n", cliente.socket_cliente, strerror(errno));
-            desconectarcliente();
             return "";
         }
 
@@ -171,7 +180,19 @@ void ManejadorCliente::descifrarMensaje(std::string json_recibido){
         aceptarInvitacion(msg);
         return;
     }
-        
+    if(type == "ROOM_TEXT"){
+        mensajeSala(msg);
+        return;
+    }
+    if(type == "ROOM_USERS"){
+        getUsuariosSala(msg);
+        return;
+    }
+    if(type ==  "LEAVE_ROOM"){
+        abandonarSala(msg);
+        return;
+
+    }   
 }
 
 
@@ -185,7 +206,7 @@ void ManejadorCliente::identificarCliente(std::string json_recibido){
 
     if(type  != "IDENTIFY"){
         fprintf(stderr, "Error: El cliente intento hacer una operación antes de identificarse.\n");
-        desconectarcliente();
+        ejecutando = false;
         return;                           
     }
 
@@ -196,7 +217,7 @@ void ManejadorCliente::identificarCliente(std::string json_recibido){
     
     if (user.length() > 8){
         fprintf(stderr, "Error: El nombre del cliente supera el tamaño permitido.\n");
-        desconectarcliente();
+        ejecutando = false;
         return;
     }
 
@@ -233,9 +254,11 @@ void ManejadorCliente::identificarCliente(std::string json_recibido){
 
         std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
         send(cliente.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
-        desconectarcliente();
+        ejecutando = false;
         return;
     }
+
+    identificado = true;
 }
 
 void ManejadorCliente::cambiarEstado(MensajeProtocolo &msg){
@@ -269,6 +292,39 @@ void ManejadorCliente::cambiarEstado(MensajeProtocolo &msg){
 
 
 void ManejadorCliente::desconectarcliente(){
+
+    if(!identificado){
+        ejecutando = false;
+        return;
+    }
+
+    datosCliente estado_global = contenedor.darCliente(cliente.username);
+
+    MensajeProtocolo msg_servidor;
+    msg_servidor.datos["type"]= "LEFT_ROOM";
+    msg_servidor.datos["username"]= cliente.username;
+
+    for(const std::string& sala : estado_global.salas){
+       msg_servidor.datos["roomname"]= sala;
+       std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
+
+       contenedor.salirSala(cliente.username, sala);
+       std::vector<datosCliente> integrantes = contenedor.cuartoUsuarios(sala);
+       for (const datosCliente& integrante: integrantes)
+            send(integrante.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
+    }
+
+    msg_servidor = MensajeProtocolo{};
+    msg_servidor.datos["type"] = "DISCONNECTED";
+    msg_servidor.datos["username"] = cliente.username;
+
+    std::string mensaje_enviar = ConstructorMensajes::armarMensaje(msg_servidor);
+
+    std::vector<int> sockets = contenedor.clientes_mensajePublico();
+    for (int sck : sockets)
+        if(sck != cliente.socket_cliente)
+            send(sck, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
+
     contenedor.eliminarCliente(cliente.username);
     ejecutando = false;
 }
@@ -446,17 +502,139 @@ void ManejadorCliente::aceptarInvitacion(MensajeProtocolo &msg){
     msg_servidor.datos["result"]= "SUCCESS";
     contenedor.entrarSala(cliente.username,sala);
 
+    std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
+    send(cliente.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
+
+
     msg_servidor = MensajeProtocolo{};
 
     msg_servidor.datos["type"]= "JOINED_ROOM";
     msg_servidor.datos["roomname"]= sala;
     msg_servidor.datos["username"]= cliente.username;
 
-    std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
+    mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
     std::vector<datosCliente> integrantes = contenedor.cuartoUsuarios(sala);
     for (const datosCliente& integrante: integrantes)
-        send(integrante.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
-
+        if(integrante.socket_cliente != cliente.socket_cliente)
+            send(integrante.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
 }
 
+void ManejadorCliente::mensajeSala(MensajeProtocolo &msg){
+    std::string sala =encontrarCampo("roomname",msg);
+    if(!ejecutando)
+     return;
+
+    MensajeProtocolo msg_servidor;
+    msg_servidor.datos["type"]= "RESPONSE";
+    msg_servidor.datos["operation"]= "ROOM_TEXT";
+    msg_servidor.datos["extra"]= sala;
+
+    if(!contenedor.haySala(sala)){
+        msg_servidor.datos["result"]= "NO_SUCH_ROOM";
+        std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
+        send(cliente.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
+        return;
+    }
+
+    datosCliente estado_global = contenedor.darCliente(cliente.username);
+    if(estado_global.salas.find(sala) == estado_global.salas.end()){
+        msg_servidor.datos["result"]=  "NOT_JOINED";
+        std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
+        send(cliente.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
+        return;
+    }
+    
+    std::string mensaje =encontrarCampo("text",msg);
+    if(!ejecutando)
+     return;
+
+    msg_servidor = MensajeProtocolo {};
+    msg_servidor.datos["type"]= "ROOM_TEXT_FROM";
+    msg_servidor.datos["roomname"]= sala;
+    msg_servidor.datos["username"]= cliente.username;
+    msg_servidor.datos["text"] = mensaje;
+
+    std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
+
+    std::vector<datosCliente> integrantes = contenedor.cuartoUsuarios(sala);
+    for (const datosCliente& integrante: integrantes)
+        if(integrante.socket_cliente != cliente.socket_cliente)
+            send(integrante.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
+}
+
+void ManejadorCliente::getUsuariosSala(MensajeProtocolo &msg){
+    std::string sala =encontrarCampo("roomname",msg);
+    if(!ejecutando)
+     return;
+
+    MensajeProtocolo msg_servidor;
+    msg_servidor.datos["type"]= "RESPONSE";
+    msg_servidor.datos["operation"]= "ROOM_USERS";
+    msg_servidor.datos["extra"]= sala;
+
+    if(!contenedor.haySala(sala)){
+        msg_servidor.datos["result"]= "NO_SUCH_ROOM";
+        std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
+        send(cliente.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
+        return;
+    }
+
+    datosCliente estado_global = contenedor.darCliente(cliente.username);
+    if(estado_global.salas.find(sala) == estado_global.salas.end()){
+        msg_servidor.datos["result"]=  "NOT_JOINED";
+        std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
+        send(cliente.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
+        return;
+    }
+    std::vector<datosCliente> integrantes = contenedor.cuartoUsuarios(sala);
+    std::map<std::string,std::string> integrantes_diccionario;
+    for (const datosCliente& integrante: integrantes)
+        integrantes_diccionario[integrante.username]=integrante.estado;
+
+    msg_servidor = MensajeProtocolo{};
+    msg_servidor.datos["type"]= "ROOM_USER_LIST";
+    msg_servidor.datos["roomname"]= sala;
+    msg_servidor.users=integrantes_diccionario;
+    std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
+    send(cliente.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
+}
+
+
+void ManejadorCliente::abandonarSala(MensajeProtocolo &msg){
+    std::string sala =encontrarCampo("roomname",msg);
+    if(!ejecutando)
+     return;
+
+    MensajeProtocolo msg_servidor;
+    msg_servidor.datos["type"]= "RESPONSE";
+    msg_servidor.datos["operation"]= "LEAVE_ROOM";
+    msg_servidor.datos["extra"]= sala;
+
+    if(!contenedor.haySala(sala)){
+        msg_servidor.datos["result"]= "NO_SUCH_ROOM";
+        std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
+        send(cliente.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
+        return;
+    }
+
+    datosCliente estado_global = contenedor.darCliente(cliente.username);
+    if(estado_global.salas.find(sala) == estado_global.salas.end()){
+        msg_servidor.datos["result"]=  "NOT_JOINED";
+        std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
+        send(cliente.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
+        return;
+    };
+
+    msg_servidor = MensajeProtocolo {};
+    msg_servidor.datos["type"]= "LEFT_ROOM";
+    msg_servidor.datos["roomname"]= sala;
+    msg_servidor.datos["username"]= cliente.username;
+
+    std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
+
+    contenedor.salirSala(cliente.username, sala);
+    std::vector<datosCliente> integrantes = contenedor.cuartoUsuarios(sala);
+    for (const datosCliente& integrante: integrantes)
+            send(integrante.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
+}
 
