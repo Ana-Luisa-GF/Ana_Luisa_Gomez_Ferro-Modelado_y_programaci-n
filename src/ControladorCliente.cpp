@@ -18,6 +18,7 @@ void ControladorCliente::setVista(VistaCliente* vista){
 }
 
 
+
 void ControladorCliente::escuhar_cliente(){
     std::string linea_entrada;
 
@@ -45,5 +46,5 @@ void ControladorCliente::capturarUsername(std::string user){
     mensaje["type"]="IDENTIFY";
     MensajeProtocolo msg;
     msg.datos = mensaje;
-    
+
 }

@@ -1,31 +1,46 @@
-
 #ifndef ALCANCE_CLIENTE_H
 #define ALCANCE_CLIENTE_H
 
 #include <string>
-#include <unordered_set>
 #include <unordered_map>
-#include <vector>
-#include "AlcanceCliente.h"
+#include <map>
+#include <unordered_set>
+#include <memory> 
 
-/**
- * @struct alcanceCLiente
- * @brief Estructura que guarda los datos del cliente y todo lo que puede conocer en el chat.
- * 
- * Funciona como un contenedor para almacenar la información que 
- * identifica al cliente y la informacion de otros usuarios que puede poseer. 
- */
-struct alcanceCliente {
-        int socket_cliente; /**< Descriptor de archivo asociado al socket del cliente. */                          
-        std::string username; /**< Nombre de usuario del cliente. */
-        std::string estado; /**< Estado o disponibilidad del usuario */
+struct datosCliente {
+    std::string username;
+    std::string status;
+};
 
-        /**
-         * @brief Sobrenombre para la estructura que almacena los cuartos.
-         */
-        using cuartos = std::unordered_map<std::string, std::unordered_map<std::string, std::string>>;
+using MapUsuarios = std::unordered_map<std::string, std::shared_ptr<datosCliente>>;
 
-        cuartos contenedor_cuartos; /**< Contenedor global de las salas a las que pertenece el cliente y sus miembros. */
-        std::unordered_map<std::string, std::string> clientes; /**< Diccionario de todos los clinentes que asocia el nombre del usuario con su estado.*/
+using MapCuartos= std::unordered_map<std::string, std::unordered_map<std::string, std::shared_ptr<datosCliente>>>;
+
+class AlcanceCliente {
+private:
+    std::string username;
+    std::string status;
+
+    MapUsuarios listaUsuarios;
+    MapCuartos salas;
+    std::unordered_set<std::string> invitaciones;
+
+public:
+    AlcanceCliente() = default;
+    void setUsername(const std::string& username);
+    void setStatus(const std::string& status);
+    const std::string getUsername();
+    const std::string getStatus();
+    void agregarUsuario(const std::string& username, const std::string& status);
+    void agregarUsuarioASala(const std::string& nombre_sala, const std::string& username);
+    void actualizarListaUsuarios(const std::map<std::string,std::string>& nuevaLista);
+    void actualizarListaSala(const std::string& sala, const std::map<std::string,std::string>& nuevaLista);
+    void quitarUsuario(const std::string& username);
+    void quitarUsuarioSala(const std::string& nombre_sala, const std::string& username);
+    void eliminarSala(const std::string& nombre_sala);
+    void agregarSala(const std::string& nombre_sala);
+    void agregarInvitacion(const std::string& nombre_sala);
+    void quitarInvitacion(const std::string& nombre_sala);
+    const std::unordered_set<std::string>& getInvitaciones() const;
 };
 #endif
