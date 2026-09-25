@@ -1,7 +1,6 @@
 #include "Cliente.h"
 #include <arpa/inet.h> 
 #include <unistd.h>
-#include <cerrno>  
 #include <cstring>
 
 Cliente::Cliente(int puertoServ,std::string ipServ){
@@ -38,3 +37,6 @@ Cliente::~Cliente() {
     return true;
  }
 
+ int Cliente::getSocket(){
+    return clientSocket;
+ }

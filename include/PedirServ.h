@@ -13,7 +13,7 @@ class PedirServ{
 
     public:
     PedirServ(int ClientSocket);
-    ~PedirServ();
+    ~PedirServ()=default;
 
     void identificarse(std::string username);
     void cambiarStatus(std::string status);

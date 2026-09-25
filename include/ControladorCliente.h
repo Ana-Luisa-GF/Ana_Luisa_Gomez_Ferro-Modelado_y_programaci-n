@@ -5,18 +5,23 @@
 #include <string>
 #include <vector>
 #include "AlcanceCliente.h"
-#include "VistaCliente.h"
+#include "PedirServ.h"
 
+class VistaCliente;
 
 class ControladorCliente{
 
 private:
     bool ejecutando;
     VistaCliente* vista;
-    alcanceCliente datos;
+    AlcanceCliente* datos; 
+    PedirServ* pedirServ;
+
+    void distribuidor_provicional(std::string mensaje);
 
 public:
-    ControladorCliente(alcanceCliente datos);
+
+    ControladorCliente(AlcanceCliente* datos, PedirServ* pedirServ);
     void setVista(VistaCliente* vista);
     void escuhar_cliente();
 
@@ -26,27 +31,31 @@ public:
 
     //Metodos que captan respuestas
 
-    void usernameExistente(std::string username);
+    void usernameExistente(const std::string& username);
     void identificacionExitosa();
-    void nuevoUsusario(std::string username);
-    void usuarioCambioStatus(std::string username, std::string status);
-    void listaUsuarios(std::map<std::string,std::string> lista);
-    void mensajePrivado(std::string usuario, std::string menaje);
-    void falloMensajePrivado(std::string user);
-    void recibirMensajePublico(std::string usuario, std::string menaje);
-    void salaCreada(std::string sala);
-    void falloSalaExistente(std::string sala);
-    void nuevaInvitación(std::string invitacion, std::string username);
-    void salaNoExiste(std::string sala);
-    void usuarioNoExiste(std::string usuario);
-    void entroSala(std::string sala);
-    void usuarioNoInvitado(std::string sala);
-    void listaUsuariosSala(std::string sala,std::map<std::string,std::string> lista);
-    void usuarioFueraDeSala(std::string sala);
-    void nuevoUsusarioSala(std::string username,std::string sala);
-    void recibirMensajeSala(std::string sala, std::string user, std::string texto);
-    void usuarioAbandonoSala(std::string sala, std::string user);
-    void usuarioDesconectado(std::string user);
+    void nuevoUsusario(const std::string& username);
+    void usuarioCambioStatus(const std::string& username, const std::string& status);
+    void listaUsuarios(const std::map<std::string, std::string>& lista);
+    
+    void mensajePrivado(const std::string& usuario, const std::string& mensaje);
+    void falloMensajePrivado(const std::string& user);
+    void recibirMensajePublico(const std::string& usuario, const std::string& mensaje);
+    
+    void salaCreada(const std::string& sala);
+    void falloSalaExistente(const std::string& sala);
+    void nuevaInvitación(const std::string& invitacion, const std::string& username);
+    void salaNoExiste(const std::string& sala);
+    void usuarioNoExiste(const std::string& usuario);
+    
+    void entroSala(const std::string& sala);
+    void usuarioNoInvitado(const std::string& sala);
+    void listaUsuariosSala(const std::string& sala, const std::map<std::string, std::string>& lista);
+    void usuarioFueraDeSala(const std::string& sala);
+    
+    void nuevoUsusarioSala(const std::string& username, const std::string& sala);
+    void recibirMensajeSala(const std::string& sala, const std::string& user, const std::string& texto);
+    void usuarioAbandonoSala(const std::string& sala, const std::string& user);
+    void usuarioDesconectado(const std::string& user);
 
 };
 #endif

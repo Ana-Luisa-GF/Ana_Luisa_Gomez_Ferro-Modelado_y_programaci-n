@@ -29,10 +29,6 @@ ManejadorCliente:: ~ManejadorCliente(){
 
 void ManejadorCliente::escuchar(){
 
-    printf("Nuevo un cliente, esperando su nombre de usuario...\n");
-    std::string mensaje_servidor = "Ingrese su nombre de usuario:\n";
-    send(cliente.socket_cliente, mensaje_servidor.c_str(), mensaje_servidor.length(), 0);
-
     std::string mensaje_cliente= "";
 
     mensaje_cliente = recibirMensaje();
