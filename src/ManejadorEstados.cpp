@@ -46,7 +46,6 @@ void ManejadorEstados::actualizarCliente(datosCliente cliente){
 void ManejadorEstados::eliminarCliente(const std::string& username){
     std::unique_lock<std::shared_mutex> lock(mutex_clientes);
         clientes.erase(username);
-    //y eliminarlo de los cuartos en que este
 }
 
 

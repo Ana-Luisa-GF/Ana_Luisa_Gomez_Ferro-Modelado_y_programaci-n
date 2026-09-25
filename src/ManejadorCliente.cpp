@@ -246,7 +246,7 @@ void ManejadorCliente::identificarCliente(std::string json_recibido){
         msg_servidor.datos["type"]= "RESPONSE";
         msg_servidor.datos["operation"]= "IDENTIFY";
         msg_servidor.datos["result"]= "USER_ALREADY_EXISTS";
-        msg_servidor.datos["extra"]= "Kimberly" ;
+        msg_servidor.datos["extra"]= cliente.username;
 
         std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
         send(cliente.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
@@ -393,6 +393,12 @@ void ManejadorCliente::crearSala(MensajeProtocolo &msg){
     if(!ejecutando)
             return;
 
+    if (sala.length() > 16){
+        desconectarcliente();
+        ejecutando = false;
+        return;
+    }
+    
     MensajeProtocolo msg_servidor;
 
     bool sala_creada =contenedor.crearSala(sala,cliente);
@@ -436,7 +442,8 @@ void ManejadorCliente::invitarSala(MensajeProtocolo &msg){
         return;
     }
 
-    if(cliente.salas.find(sala) == cliente.salas.end())
+    datosCliente estado_global = contenedor.darCliente(cliente.username);
+    if(estado_global.salas.find(sala) == estado_global.salas.end())
         return;
 
     msg_servidor.datos["type"]= "RESPONSE";

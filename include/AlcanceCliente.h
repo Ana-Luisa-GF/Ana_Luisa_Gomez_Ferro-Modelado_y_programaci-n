@@ -20,17 +20,23 @@ class AlcanceCliente {
 private:
     std::string username;
     std::string status;
+    bool sesionActiva= true;
 
     MapUsuarios listaUsuarios;
     MapCuartos salas;
     std::unordered_set<std::string> invitaciones;
 
 public:
+
     AlcanceCliente() = default;
     void setUsername(const std::string& username);
     void setStatus(const std::string& status);
+    void setSesionActiva(const bool& estado_sesion);
+
     const std::string getUsername();
     const std::string getStatus();
+    const bool getSesionActiva();
+
     void agregarUsuario(const std::string& username, const std::string& status);
     void agregarUsuarioASala(const std::string& nombre_sala, const std::string& username);
     void actualizarListaUsuarios(const std::map<std::string,std::string>& nuevaLista);

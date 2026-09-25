@@ -10,6 +10,12 @@ void AlcanceCliente::setStatus(const std::string& status){
     this->status = status;
 }
 
+
+void AlcanceCliente::setSesionActiva(const bool& estado_sesion){
+    sesionActiva = estado_sesion;
+}
+
+
 const std::string AlcanceCliente::getUsername(){
     return username;
 }
@@ -18,6 +24,12 @@ const std::string AlcanceCliente::getUsername(){
 const std::string AlcanceCliente::getStatus(){
     return status;
 }
+
+
+const bool AlcanceCliente::getSesionActiva(){
+    return sesionActiva;
+}
+
 
 void AlcanceCliente::agregarUsuario(const std::string& username, const std::string& status) {
     auto it = listaUsuarios.find(username);

@@ -32,6 +32,7 @@ void RecibirServ::escucha(){
     }
 
     if (clientSocket >= 0) {
+        datos->setSesionActiva(false);
         shutdown(clientSocket, SHUT_RDWR); 
         close(clientSocket);               
         clientSocket = -1;
@@ -62,11 +63,13 @@ std::string RecibirServ::recibirMensaje(){
         bytes_leidos = recv(clientSocket, buffer_temporal, bytes_a_pedir, 0);
 
         if (bytes_leidos == 0) {
+            datos->setSesionActiva(false);
             return ""; 
         }
         
         if (bytes_leidos < 0) {
             fprintf(stderr, "Error al recibir datos del socket %d: %s\n", clientSocket, strerror(errno));
+            datos->setSesionActiva(false);
             return "";
         }
 
@@ -81,6 +84,7 @@ std::string RecibirServ::recibirMensaje(){
     }
 
     fprintf(stderr, "Error: El mensaje superó el límite de 1MB sin salto de línea.\n");
+    datos->setSesionActiva(false);
     buffer_acumulador.clear();
     return "";
 }
