@@ -6,7 +6,6 @@
 #include <string>
 #include <vector>
 
-// Declaración adelantada de la clase para evitar inclusiones circulares
 class ManejadorEstados;
 
 /**

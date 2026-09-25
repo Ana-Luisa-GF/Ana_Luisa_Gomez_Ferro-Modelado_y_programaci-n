@@ -25,7 +25,7 @@ class Cliente{
 
     Cliente(int puertoServ, std::string ipServ); 
     ~Cliente();
-
+    int getSocket();
     bool iniciarCliente();
     
 };
