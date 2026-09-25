@@ -17,8 +17,6 @@ private:
     AlcanceCliente* datos; 
     PedirServ* pedirServ;
 
-    void distribuidor_provicional(std::string mensaje);
-
 public:
 
     ControladorCliente(AlcanceCliente* datos, PedirServ* pedirServ);
@@ -26,7 +24,7 @@ public:
     void escuhar_cliente();
 
     void capturarUsername(std::string user);
-
+    void capturarInstruccion(std::string mensaje);
 
 
     //Metodos que captan respuestas

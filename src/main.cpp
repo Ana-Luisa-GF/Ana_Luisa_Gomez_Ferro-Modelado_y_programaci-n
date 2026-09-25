@@ -4,7 +4,11 @@
 #include <cstdio>
 
 int main() {
-    int puerto = 1234;
+    int puerto; 
+
+    std::cout << "Puerto del servidor:\n";
+    std::cin >> puerto;
+
     Servidor mi_servidor(puerto);
 
     if (mi_servidor.iniciarServidor()) {

@@ -15,7 +15,7 @@ class PedirServ{
     PedirServ(int ClientSocket);
     ~PedirServ()=default;
 
-    void identificarse(std::string username);
+    void identificarse(std::string username);    
     void cambiarStatus(std::string status);
     void getListaUsuarios();
     void mensajePrivado(std::string user, std::string mensaje);
@@ -27,7 +27,6 @@ class PedirServ{
     void mensajeSala(std::string sala, std::string mensaje);
     void abandonarSala(std::string sala);
     void desconectarse();
-
 
 };
 #endif

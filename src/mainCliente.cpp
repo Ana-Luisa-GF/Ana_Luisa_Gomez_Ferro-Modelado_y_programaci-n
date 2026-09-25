@@ -19,6 +19,8 @@ int main() {
     std::cout << "ip del servidor:\n";
     std::cin >> ipServ;
 
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    
     Cliente mi_cliente(puertoServ, ipServ);
     if(!mi_cliente.iniciarCliente()){
         std::cout << "No se conecto :(\n";

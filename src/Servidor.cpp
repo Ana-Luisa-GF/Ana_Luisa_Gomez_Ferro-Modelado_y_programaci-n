@@ -77,10 +77,9 @@ void Servidor:: escuchar(){
 
        ManejadorCliente* cliente = new ManejadorCliente(cliente_socket , contenedor);
         
-        // Crear hilo para escuchar al cliente
         std::thread([cliente]() {
             cliente->escuchar();
-            delete cliente; // Liberación del cliente al desconectarse
+            delete cliente; 
         }).detach();
     }
 }

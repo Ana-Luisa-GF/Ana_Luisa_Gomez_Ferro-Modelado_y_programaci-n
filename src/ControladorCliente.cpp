@@ -3,6 +3,9 @@
 #include "ConstructorMensajes.h"
 #include <iostream>
 #include <string>
+#include <sstream>
+#include <algorithm>
+#include <cctype>
 #include <map>
 #include <vector>
 
@@ -22,85 +25,109 @@ void ControladorCliente::setVista(VistaCliente* vista){
 
 void ControladorCliente::escuhar_cliente(){
     std::string linea_entrada;
-
     vista->pantallaInicio(); //----------------------------------------------------------------------
+    std::getline(std::cin, linea_entrada);
+    capturarUsername(linea_entrada);
 
-    while (ejecutando) {
+    while (ejecutando) {        
         std::getline(std::cin, linea_entrada);
 
         if (linea_entrada.empty())
             continue;
-        
 
-        if (linea_entrada == "/salir") {
-            ejecutando = false;
-            break;
-        }
+        capturarInstruccion(linea_entrada);
 
-        distribuidor_provicional(linea_entrada);
+        ejecutando=datos->getSesionActiva();
     }
 
 }
 
+void ControladorCliente::capturarUsername(std::string username){  
+    pedirServ->identificarse(username);
+} 
 
-void ControladorCliente::distribuidor_provicional(std::string mensaje){
-    char primero =mensaje.front();
-    mensaje.erase(mensaje.begin());
+void ControladorCliente::capturarInstruccion(std::string mensaje){
+    std::stringstream ss(mensaje);
+    std::string primer_comando="";
+    std::string resto_linea = "";
+    ss >> primer_comando;
+ 
+        std::getline(ss >> std::ws, resto_linea);
 
-    if(primero == '1'){
-        pedirServ->identificarse(mensaje);
+    if(primer_comando == "/status"){
+        std::transform(resto_linea.begin(), resto_linea.end(), resto_linea.begin(), ::toupper);
+        pedirServ->cambiarStatus(resto_linea);
         return;
     }
-    if(primero == '2'){
-        pedirServ->cambiarStatus(mensaje);
-        return;
-    }
-    if(primero == '3'){
+    if(primer_comando == "/usuarios"){
         pedirServ->getListaUsuarios();
+        return;   
+    }
+    if(primer_comando =="/sala_usuarios"){
+        pedirServ->getUsuariosSala(resto_linea);
         return;
     }
-    if(primero == '4'){
-        pedirServ->mensajePrivado(mensaje, "ESTE ES UN MENSAJE PRIVADOOO");
+    if(primer_comando == "/msg"){
+        std::string usuario="";
+        std::string msg="";
+        std::stringstream ss2(resto_linea);
+
+        ss2 >> usuario;
+        std::getline(ss2 >> std::ws, msg);
+
+        pedirServ->mensajePrivado(usuario,msg);
         return;
     }
-    if(primero == '5'){
-        pedirServ->mensajePublico(mensaje);
+    if(primer_comando == "/crear_sala"){
+        pedirServ->crearSala(resto_linea);
         return;
     }
-    if(primero == '6'){
-        pedirServ->crearSala(mensaje);
+    if(primer_comando == "/unirse"){
+        pedirServ->unirseSala(resto_linea);  
         return;
     }
-    if(primero == '7'){
-        std::vector<std::string> invitados = {"Ana","Luisa"};
-        pedirServ->invitarSala(mensaje,invitados);
+    if(primer_comando == "/miembros"){
+        pedirServ->getUsuariosSala(resto_linea);
         return;
     }
-    if(primero == '8'){
-        pedirServ->unirseSala(mensaje);
+    if(primer_comando == "/msg_sala"){
+        std::string sala="";
+        std::string msg="";
+        std::stringstream ss2(resto_linea);  
+
+        ss2 >> sala;
+        std::getline(ss2 >> std::ws, msg);
+
+        pedirServ->mensajeSala(sala,msg);
         return;
     }
-    if(primero == '9'){
-        pedirServ->getUsuariosSala(mensaje);
+    if(primer_comando == "/salir_sala"){
+        pedirServ->abandonarSala(resto_linea);
         return;
     }
-    if(primero == '0'){
-        pedirServ->mensajeSala(mensaje, "Hola sala!!! :D");
-        return;
-    }
-    if(primero == 'a'){
-        pedirServ->abandonarSala(mensaje);
-        return;
-    }
-    if(primero == 'z'){
+    if(primer_comando == "/salir"){
         pedirServ->desconectarse();
         return;
     }
-    
-    
- }
+    if(primer_comando == "/invitar"){
+        std::string sala="";
+        std::string invitados="";
+        std::stringstream ss2(resto_linea); 
 
+        ss2 >> sala;
 
+        std::vector<std::string> lista;
+        std::string invitado="";
+
+        while (ss2 >> invitado) 
+            lista.push_back(invitado);
+        
+        pedirServ->invitarSala(sala,lista);
+        return;
+    }
+    pedirServ->mensajePublico(mensaje);
+}
+ 
 
 void ControladorCliente::usernameExistente(const std::string& username) {
     vista->mostrarUsernameExistente(username);
