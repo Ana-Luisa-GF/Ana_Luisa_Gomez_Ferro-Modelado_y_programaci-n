@@ -36,6 +36,7 @@ void RecibirServ::escucha(){
         shutdown(clientSocket, SHUT_RDWR); 
         close(clientSocket);               
         clientSocket = -1;
+        exit(0);
     }
 }
 
