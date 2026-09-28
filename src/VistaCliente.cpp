@@ -9,6 +9,7 @@
 #define MAGENTA "\033[1;35m"
 #define CYAN    "\033[1;36m"
 #define GRIS    "\033[1;90m"
+#define ROSA    "\033[38;5;211m"
 
 
 VistaCliente::VistaCliente(ControladorCliente* controlador) {
@@ -16,8 +17,31 @@ VistaCliente::VistaCliente(ControladorCliente* controlador) {
 }
 
  void VistaCliente::pantallaInicio(){
-     std::cout << MAGENTA << "CHAT PROYECTOOO :D" << RESET << "\n";
+     std::cout << ROSA << "♡ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ♡" << RESET << "\n";
+     std::cout << ROSA << "           ! B I E N V E N I D O !"<< RESET << "\n";
+     std::cout << ROSA << "♡ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ♡" << RESET << "\n";
+     std::cout << ROSA << ">> Por favor, ingresa tu nombre: " << RESET;
  }
+
+ void VistaCliente::mostrarGuiaComandos() {
+    std::cout << ROSA <<"\n========================================================================================\n"
+              << "                          ¡G U I A   D E   C O M A N D O S!\n"
+              << "========================================================================================\n"
+              << "  /msg <usuario> <mensaje>                   - Mensaje privado\n"
+              << "  /msg_sala <sala> <mensaje>                 - Mensaje a sala\n"
+              << "  /crear_sala <sala>                         - Crear una nueva sala\n"
+              << "  /unirse <sala>                             - Unirse a una sala\n"
+              << "  /salir_sala <sala>                         - Salir de una sala\n"
+              << "  /invitar <sala> <usuario 1> <usuario 2>    - Invitar usuarios a una sala\n"
+              << "  /usuarios                                  - Ver conectados globales\n"
+              << "  /miembros <sala>                           - Ver integrantes de una sala\n"
+              << "  /status <ESTADO>                           - Cambiar estado (ACTIVE/BUSY/AWAY)\n"
+              << "  /invitaciones                              - Ver las invitaciones a salas\n"
+              << "  /ayuda                                     - Mostrar guia de comandos\n"
+              << "  /salir                                     - Desconectarse\n"
+              << "  (Texto normal)                             - Enviar mensaje público\n"
+              << "========================================================================================\n\n"<< RESET;
+}
 
 void VistaCliente::mostrarIdentificacionExitosa(const std::string& username) {
     std::cout << VERDE << "[✔] Identificación exitosa. Bienvenido, " << username << "!" << RESET << "\n";
@@ -38,7 +62,7 @@ void VistaCliente::mostrarUsuarioCambioStatus(const std::string& username, const
 void VistaCliente::mostrarListaUsuarios(const std::map<std::string, std::string>& lista) {
     std::cout << MAGENTA << "=== LISTA DE USUARIOS CONECTADOS ===" << RESET << "\n";
     for (const auto& [user, status] : lista) {
-        std::cout << " • " << user << " (" << status << ")\n";
+        std::cout << " ❁ " << user << " (" << status << ")\n";
     }
     std::cout << MAGENTA << "====================================" << RESET << "\n";
 }
@@ -86,7 +110,7 @@ void VistaCliente::mostrarUsuarioNoInvitado(const std::string& sala) {
 void VistaCliente::mostrarListaUsuariosSala(const std::string& sala, const std::map<std::string, std::string>& lista) {
     std::cout << MAGENTA << "=== INTEGRANTES DE LA SALA: " << sala << " ===" << RESET << "\n";
     for (const auto& [user, status] : lista) {
-        std::cout << " • " << user << " (" << status << ")\n";
+        std::cout << " ✿ " << user << " (" << status << ")\n";
     }
     std::cout << MAGENTA << "==========================================" << RESET << "\n";
 }
@@ -103,10 +127,32 @@ void VistaCliente::mostrarMensajeSala(const std::string& sala, const std::string
     std::cout << AZUL << "[" << sala << " | " << user << "]: " << RESET << texto << "\n";
 }
 
+void VistaCliente::mostrarInvitaciones(const std::unordered_set<std::string>& lista) {
+    std::cout << MAGENTA << "=== LISTA DE INVITACIONES ===" << RESET << "\n";
+    for (const std::string& invitacion : lista) {
+        std::cout << " ❁ " << invitacion <<"\n";
+    }
+    std::cout << MAGENTA << "=============================" << RESET << "\n";
+}  
+
+
+void VistaCliente::mostrarSalas(const std::vector<std::string>& lista) {
+    std::cout << MAGENTA << "====== LISTA DE SALAS ======" << RESET << "\n";
+    for (const std::string& sala : lista) {
+        std::cout << " ❁ " << sala <<"\n";
+    }
+    std::cout << MAGENTA << "=============================" << RESET << "\n";
+}                
+
+
 void VistaCliente::mostrarUsuarioAbandonoSala(const std::string& sala, const std::string& user) {
     std::cout << AMARILLO << "[-] " << user << " ha salido de la sala '" << sala << "'." << RESET << "\n";
 }
 
 void VistaCliente::mostrarUsuarioDesconectado(const std::string& user) {
     std::cout << ROJO << "[-] El usuario '" << user << "' se ha desconectado." << RESET << "\n";
+}
+
+void VistaCliente::mostrarOperacionInvalida(){
+    std::cout << ROJO << " [X] ERROR: Algo salió mal con la operación. Vuelve a conectarte para regresar al chat."<< RESET <<"\n";
 }

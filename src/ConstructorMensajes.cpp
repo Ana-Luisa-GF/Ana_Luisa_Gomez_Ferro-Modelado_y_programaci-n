@@ -32,7 +32,7 @@ std::string ConstructorMensajes::armarMensaje(const MensajeProtocolo& msg){
             }
 
             char *texto = cJSON_PrintUnformatted(json);
-            std::string mensaje_final = std::string(texto) + "\r\n";
+            std::string mensaje_final = std::string(texto) + "\n";
 
             cJSON_free(texto); 
             cJSON_Delete(json);  

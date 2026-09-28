@@ -55,5 +55,7 @@ public:
     void usuarioAbandonoSala(const std::string& sala, const std::string& user);
     void usuarioDesconectado(const std::string& user);
 
+    void operacionInvalida();
+
 };
 #endif

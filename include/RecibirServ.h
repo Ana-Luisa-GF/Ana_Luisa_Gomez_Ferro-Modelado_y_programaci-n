@@ -44,6 +44,8 @@ private:
     void falloAbandonarSala(MensajeProtocolo msg);
     void usuarioDesconectado(MensajeProtocolo msg);
 
+    void operacionInvalida(MensajeProtocolo msg);
+
 public:
 
     RecibirServ( int clientSocket, AlcanceCliente* datos,ControladorCliente* controlador);

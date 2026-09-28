@@ -25,9 +25,11 @@ void ControladorCliente::setVista(VistaCliente* vista){
 
 void ControladorCliente::escuhar_cliente(){
     std::string linea_entrada;
-    vista->pantallaInicio(); //----------------------------------------------------------------------
+    vista->pantallaInicio(); 
     std::getline(std::cin, linea_entrada);
     capturarUsername(linea_entrada);
+
+    vista->mostrarGuiaComandos();
 
     while (ejecutando) {        
         std::getline(std::cin, linea_entrada);
@@ -109,6 +111,10 @@ void ControladorCliente::capturarInstruccion(std::string mensaje){
         pedirServ->desconectarse();
         return;
     }
+    if(primer_comando == "/ayuda"){
+        vista->mostrarGuiaComandos();
+        return;
+    }
     if(primer_comando == "/invitar"){
         std::string sala="";
         std::string invitados="";
@@ -125,7 +131,13 @@ void ControladorCliente::capturarInstruccion(std::string mensaje){
         pedirServ->invitarSala(sala,lista);
         return;
     }
-    pedirServ->mensajePublico(mensaje);
+    if(primer_comando == "/invitaciones"){
+        vista->mostrarInvitaciones(datos->getInvitaciones());
+    }
+    if(primer_comando == "/mis_salas"){
+        vista->mostrarSalas(datos->getSalas());
+    }
+    pedirServ->mensajePublico(mensaje); 
 }
  
 
@@ -211,4 +223,8 @@ void ControladorCliente::usuarioAbandonoSala(const std::string& sala, const std:
 
 void ControladorCliente::usuarioDesconectado(const std::string& user) {
     vista->mostrarUsuarioDesconectado(user);
+}
+
+void ControladorCliente::operacionInvalida(){
+    vista->mostrarOperacionInvalida();
 }

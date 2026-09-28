@@ -17,7 +17,8 @@ public:
     VistaCliente(ControladorCliente* controlador);
 
     void pantallaInicio();
-
+    void mostrarGuiaComandos();
+    
     void mostrarIdentificacionExitosa(const std::string& username);
     void mostrarUsernameExistente(const std::string& username);
     void mostrarNuevoUsuario(const std::string& username);
@@ -38,10 +39,14 @@ public:
     void mostrarUsuarioNoInvitado(const std::string& sala);
     void mostrarListaUsuariosSala(const std::string& sala, const std::map<std::string, std::string>& lista);
     void mostrarUsuarioFueraDeSala(const std::string& sala);
+    void mostrarSalas(const std::vector<std::string>& lista);
 
     void mostrarNuevoUsuarioSala(const std::string& username, const std::string& sala);
     void mostrarMensajeSala(const std::string& sala, const std::string& user, const std::string& texto);
     void mostrarUsuarioAbandonoSala(const std::string& sala, const std::string& user);
     void mostrarUsuarioDesconectado(const std::string& user);
+    void mostrarInvitaciones(const std::unordered_set<std::string>& lista);
+
+    void mostrarOperacionInvalida();
 };
 #endif
