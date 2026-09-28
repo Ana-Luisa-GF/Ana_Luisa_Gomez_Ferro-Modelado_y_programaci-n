@@ -1,5 +1,5 @@
-#include "VistaCliente.h"
-#include "ControladorCliente.h"
+#include "cliente/VistaCliente.h"
+#include "cliente/ControladorCliente.h"
 #include <iostream>
 #define RESET   "\033[0m"
 #define ROJO    "\033[1;31m"
@@ -156,3 +156,4 @@ void VistaCliente::mostrarUsuarioDesconectado(const std::string& user) {
 void VistaCliente::mostrarOperacionInvalida(){
     std::cout << ROJO << " [X] ERROR: Algo salió mal con la operación. Vuelve a conectarte para regresar al chat."<< RESET <<"\n";
 }
+

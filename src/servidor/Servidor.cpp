@@ -1,5 +1,5 @@
-#include "Servidor.h"
-#include "ManejadorCliente.h"
+#include "servidor/Servidor.h"
+#include "servidor/ManejadorCliente.h"
 #include <unistd.h> 
 #include <cerrno>  
 #include <cstring>

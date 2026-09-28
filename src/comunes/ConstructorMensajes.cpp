@@ -1,7 +1,7 @@
 extern "C" {
-    #include "cJSON.h"
+    #include "comunes/cJSON.h"
 }
-#include "ConstructorMensajes.h"
+#include "comunes/ConstructorMensajes.h"
 #include <string>
 #include <map>
 #include <vector>

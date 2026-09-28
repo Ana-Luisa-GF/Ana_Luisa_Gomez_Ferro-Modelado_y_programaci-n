@@ -1,9 +1,9 @@
 
-#include "Cliente.h"
-#include "AlcanceCliente.h"
-#include "VistaCliente.h"
-#include "ControladorCliente.h"
-#include "RecibirServ.h"
+#include "cliente/Cliente.h"
+#include "cliente/AlcanceCliente.h"
+#include "cliente/VistaCliente.h"
+#include "cliente/ControladorCliente.h"
+#include "cliente/RecibirServ.h"
 #include <thread>
 #include <unistd.h>
 #include <iostream>

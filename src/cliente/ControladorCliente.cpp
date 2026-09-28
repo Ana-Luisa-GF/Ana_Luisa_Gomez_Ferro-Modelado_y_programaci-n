@@ -1,6 +1,6 @@
-#include "ControladorCliente.h"
-#include "VistaCliente.h"
-#include "ConstructorMensajes.h"
+#include "cliente/ControladorCliente.h"
+#include "cliente/VistaCliente.h"
+#include "comunes/ConstructorMensajes.h"
 #include <iostream>
 #include <string>
 #include <sstream>
@@ -29,7 +29,8 @@ void ControladorCliente::escuhar_cliente(){
     std::getline(std::cin, linea_entrada);
     capturarUsername(linea_entrada);
 
-    vista->mostrarGuiaComandos();
+    if(datos->getSesionActiva())
+        vista->mostrarGuiaComandos();
 
     while (ejecutando) {        
         std::getline(std::cin, linea_entrada);

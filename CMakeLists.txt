@@ -5,35 +5,43 @@ project(proyecto_chat DESCRIPTION "Chat con cliente y servidor" LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-#compilacion del servidor
-add_executable(servidor
- ${PROJECT_SOURCE_DIR}/src/main.cpp
-    ${PROJECT_SOURCE_DIR}/src/Servidor.cpp
-    ${PROJECT_SOURCE_DIR}/src/ManejadorCliente.cpp
-    ${PROJECT_SOURCE_DIR}/src/ManejadorEstados.cpp
-    ${PROJECT_SOURCE_DIR}/src/ConstructorMensajes.cpp  
-    ${PROJECT_SOURCE_DIR}/src/cJSON.c
+# archivos compartidos
+set(FUENTES_COMUNES
+    ${PROJECT_SOURCE_DIR}/src/comunes/cJSON.c
+    ${PROJECT_SOURCE_DIR}/src/comunes/ConstructorMensajes.cpp
 )
 
-target_include_directories(servidor PUBLIC ${PROJECT_SOURCE_DIR}/include)
+#compilacion del servidor
+add_executable(servidor
+${PROJECT_SOURCE_DIR}/src/servidor/main.cpp
+    ${PROJECT_SOURCE_DIR}/src/servidor/Servidor.cpp
+    ${PROJECT_SOURCE_DIR}/src/servidor/ManejadorCliente.cpp
+    ${PROJECT_SOURCE_DIR}/src/servidor/ManejadorEstados.cpp
+    ${FUENTES_COMUNES}
+)
+
+target_include_directories(servidor PUBLIC 
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/include/comunes)
 
 find_package(Threads REQUIRED)
 target_link_libraries(servidor PRIVATE Threads::Threads)
 
 #compilacion del ciente
 add_executable(cliente
-    ${PROJECT_SOURCE_DIR}/src/mainCliente.cpp  
-    ${PROJECT_SOURCE_DIR}/src/Cliente.cpp
-    ${PROJECT_SOURCE_DIR}/src/AlcanceCliente.cpp
-    ${PROJECT_SOURCE_DIR}/src/ConstructorMensajes.cpp
-    ${PROJECT_SOURCE_DIR}/src/PedirServ.cpp
-    ${PROJECT_SOURCE_DIR}/src/RecibirServ.cpp
-    ${PROJECT_SOURCE_DIR}/src/VistaCliente.cpp
-    ${PROJECT_SOURCE_DIR}/src/ControladorCliente.cpp
-    ${PROJECT_SOURCE_DIR}/src/cJSON.c
+    ${PROJECT_SOURCE_DIR}/src/cliente/mainCliente.cpp  
+    ${PROJECT_SOURCE_DIR}/src/cliente/Cliente.cpp
+    ${PROJECT_SOURCE_DIR}/src/cliente/AlcanceCliente.cpp
+    ${PROJECT_SOURCE_DIR}/src/cliente/PedirServ.cpp
+    ${PROJECT_SOURCE_DIR}/src/cliente/RecibirServ.cpp
+    ${PROJECT_SOURCE_DIR}/src/cliente/VistaCliente.cpp
+    ${PROJECT_SOURCE_DIR}/src/cliente/ControladorCliente.cpp
+    ${FUENTES_COMUNES}
 )
 
-target_include_directories(cliente PUBLIC ${PROJECT_SOURCE_DIR}/include)
+target_include_directories(cliente PUBLIC 
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/include/comunes)
 target_link_libraries(cliente PRIVATE Threads::Threads)
 
 

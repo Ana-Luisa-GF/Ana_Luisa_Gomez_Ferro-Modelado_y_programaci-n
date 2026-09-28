@@ -1,6 +1,6 @@
-#include "RecibirServ.h"
-#include "ControladorCliente.h"
-#include "AlcanceCliente.h"
+#include "cliente/RecibirServ.h"
+#include "cliente/ControladorCliente.h"
+#include "cliente/AlcanceCliente.h"
 #include <sys/socket.h>
 #include <unistd.h>
 #include <cerrno> 
@@ -158,8 +158,12 @@ void RecibirServ::descifrarMensaje(std::string json_recibido){
             falloMensajeSala(msg);
             return;
         } 
-        if (operation == "LEAVE_ROOM"){
+        if (operation == "LEAVE_ROOM"){             
             falloAbandonarSala(msg);
+            return;
+        } 
+        if (operation == "INVALID"){             
+            operacionInvalida(msg);
             return;
         } 
         return;
@@ -219,7 +223,7 @@ void RecibirServ::identificarse(MensajeProtocolo msg){
     
     std::string user;
     if(result == "USER_ALREADY_EXISTS"){
-        user = encontrarCampo("extra",msg);
+    user = encontrarCampo("extra",msg);
         if(!ejecutando)
             return;
         controlador->usernameExistente(user);
