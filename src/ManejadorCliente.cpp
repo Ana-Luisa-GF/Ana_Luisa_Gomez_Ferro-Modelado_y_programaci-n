@@ -39,7 +39,7 @@ void ManejadorCliente::escuchar(){
 
         if (mensaje_cliente.empty()) {
             desconectarcliente(); 
-            return;
+            break;
         }
 
         descifrarMensaje(mensaje_cliente);
@@ -95,8 +95,15 @@ std::string ManejadorCliente::recibirMensaje(){
         return mensaje;
     }
 
-    fprintf(stderr, "Error: El mensaje superó el límite de 1MB sin salto de línea.\n");
+    MensajeProtocolo msg_servidor;
+    msg_servidor.datos["type"]= "RESPONSE";
+    msg_servidor.datos["operation"]= "INVALID";
+    msg_servidor.datos["result"]= "INVALID";
+
+    std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
+    send(cliente.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
     desconectarcliente();
+
     buffer_acumulador.clear();
     return "";
 }
@@ -114,17 +121,29 @@ void ManejadorCliente:: limpiarCadena(std::string &cadena){
 
 std::string ManejadorCliente::encontrarCampo(std::string campo, MensajeProtocolo msg){
     if(!msg.valido){
-    fprintf(stderr, "Error: La estructura de un mensaje json es incorrecta.\n");
-    desconectarcliente();
-    return "";
+        MensajeProtocolo msg_servidor;
+        msg_servidor.datos["type"]= "RESPONSE";
+        msg_servidor.datos["operation"]= "INVALID";
+        msg_servidor.datos["result"]= "INVALID";
+
+        std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
+        send(cliente.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);    
+        desconectarcliente();
+        return "";
     }
 
     auto iterador =msg.datos.find(campo);
 
     if(iterador == msg.datos.end()){
-        fprintf(stderr, "Error: La estructura de un mensaje json es incorrecta.\n");
+        MensajeProtocolo msg_servidor;
+        msg_servidor.datos["type"]= "RESPONSE";
+        msg_servidor.datos["operation"]= "INVALID";
+        msg_servidor.datos["result"]= "INVALID";
+
+        std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
+        send(cliente.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
         desconectarcliente();
-        return "";
+        return "";    
     }
 
     return iterador->second;
@@ -140,7 +159,14 @@ void ManejadorCliente::descifrarMensaje(std::string json_recibido){
         return;
 
     if(type  == "IDENTIFY"){
-        fprintf(stderr, "Error: El cliente se intento identificar 2 veces.\n");
+
+        MensajeProtocolo msg_servidor;
+        msg_servidor.datos["type"]= "RESPONSE";
+        msg_servidor.datos["operation"]= "INVALID";
+        msg_servidor.datos["result"]= "NOT_IDENTIFIED";
+
+        std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
+        send(cliente.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
         desconectarcliente();
         return;                            
     }
@@ -201,8 +227,14 @@ void ManejadorCliente::identificarCliente(std::string json_recibido){
         return;
 
     if(type  != "IDENTIFY"){
-        fprintf(stderr, "Error: El cliente intento hacer una operación antes de identificarse.\n");
-        ejecutando = false;
+        MensajeProtocolo msg_servidor;
+        msg_servidor.datos["type"]= "RESPONSE";
+        msg_servidor.datos["operation"]= "INVALID";
+        msg_servidor.datos["result"]= "INVALID";
+
+        std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
+        send(cliente.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
+        desconectarcliente();  
         return;                           
     }
 
@@ -212,8 +244,14 @@ void ManejadorCliente::identificarCliente(std::string json_recibido){
             return;
     
     if (user.length() > 8){
-        fprintf(stderr, "Error: El nombre del cliente supera el tamaño permitido.\n");
-        ejecutando = false;
+        MensajeProtocolo msg_servidor;
+        msg_servidor.datos["type"]= "RESPONSE";
+        msg_servidor.datos["operation"]= "INVALID";
+        msg_servidor.datos["result"]= "INVALID";
+
+        std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
+        send(cliente.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
+        desconectarcliente();
         return;
     }
 
@@ -264,9 +302,15 @@ void ManejadorCliente::cambiarEstado(MensajeProtocolo &msg){
         return;
 
     if(nuevo_status != "AWAY" && nuevo_status != "ACTIVE" && nuevo_status != "BUSY"){
-        fprintf(stderr, "Error: El nuevo estado del cliente es invalido.\n");
+        MensajeProtocolo msg_servidor;
+        msg_servidor.datos["type"]= "RESPONSE";
+        msg_servidor.datos["operation"]= "INVALID";
+        msg_servidor.datos["result"]= "INVALID";
+
+        std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
+        send(cliente.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
         desconectarcliente();
-        return;
+        return;    
     }
 
     if(nuevo_status == cliente.estado)
@@ -304,9 +348,9 @@ void ManejadorCliente::desconectarcliente(){
        msg_servidor.datos["roomname"]= sala;
        std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
 
-       contenedor.salirSala(cliente.username, sala);
        std::vector<datosCliente> integrantes = contenedor.cuartoUsuarios(sala);
        for (const datosCliente& integrante: integrantes)
+            if(cliente.socket_cliente != integrante.socket_cliente)
             send(integrante.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
     }
 
@@ -321,6 +365,8 @@ void ManejadorCliente::desconectarcliente(){
         if(sck != cliente.socket_cliente)
             send(sck, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
 
+    for(const std::string& sala : estado_global.salas)
+        contenedor.salirSala(cliente.username, sala);
     contenedor.eliminarCliente(cliente.username);
     ejecutando = false;
 }
@@ -413,7 +459,7 @@ void ManejadorCliente::crearSala(MensajeProtocolo &msg){
         return;
     }
 
-    msg_servidor.datos["type"]= "RESPONSE";
+        msg_servidor.datos["type"]= "RESPONSE";
         msg_servidor.datos["operation"]= "NEW_ROOM";
         msg_servidor.datos["result"]= "SUCCESS";
         msg_servidor.datos["extra"]= sala;
@@ -635,9 +681,10 @@ void ManejadorCliente::abandonarSala(MensajeProtocolo &msg){
 
     std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
 
-    contenedor.salirSala(cliente.username, sala);
     std::vector<datosCliente> integrantes = contenedor.cuartoUsuarios(sala);
     for (const datosCliente& integrante: integrantes)
+        if(cliente.socket_cliente != integrante.socket_cliente)
             send(integrante.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
+    contenedor.salirSala(cliente.username, sala);
 }
 

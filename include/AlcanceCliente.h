@@ -6,6 +6,7 @@
 #include <map>
 #include <unordered_set>
 #include <memory> 
+#include <vector>
 
 struct datosCliente {
     std::string username;
@@ -33,9 +34,11 @@ public:
     void setStatus(const std::string& status);
     void setSesionActiva(const bool& estado_sesion);
 
-    const std::string getUsername();
-    const std::string getStatus();
-    const bool getSesionActiva();
+    const std::string& getUsername();
+    const std::string& getStatus();
+    const bool& getSesionActiva();
+    std::vector<std::string> getSalas();
+    const std::unordered_set<std::string>& getInvitaciones();
 
     void agregarUsuario(const std::string& username, const std::string& status);
     void agregarUsuarioASala(const std::string& nombre_sala, const std::string& username);
@@ -47,6 +50,6 @@ public:
     void agregarSala(const std::string& nombre_sala);
     void agregarInvitacion(const std::string& nombre_sala);
     void quitarInvitacion(const std::string& nombre_sala);
-    const std::unordered_set<std::string>& getInvitaciones() const;
+    
 };
 #endif

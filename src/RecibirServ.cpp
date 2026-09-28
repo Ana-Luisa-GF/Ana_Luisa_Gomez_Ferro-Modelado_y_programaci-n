@@ -83,8 +83,8 @@ std::string RecibirServ::recibirMensaje(){
         return mensaje;
     }
 
-    fprintf(stderr, "Error: El mensaje superó el límite de 1MB sin salto de línea.\n");
     datos->setSesionActiva(false);
+    controlador->operacionInvalida();
     buffer_acumulador.clear();
     return "";
 }
@@ -402,12 +402,6 @@ void RecibirServ::nuevoUsuarioSala(MensajeProtocolo msg){
     controlador->nuevoUsusarioSala(username,sala);
 }
 
-
-
-
-
-
-
 void RecibirServ::mensajeSala(MensajeProtocolo msg) {
     std::string sala = encontrarCampo("roomname", msg);
     if (!ejecutando) 
@@ -477,4 +471,12 @@ void RecibirServ::usuarioDesconectado(MensajeProtocolo msg) {
         return;
     datos->quitarUsuario(user);
     controlador->usuarioDesconectado(user);
+}
+
+void RecibirServ::operacionInvalida(MensajeProtocolo msg){
+    std::string result = encontrarCampo("result", msg);
+    if (!ejecutando) return;
+    if(result == "INVALID")
+    controlador->operacionInvalida();
+    datos->setSesionActiva(false);
 }

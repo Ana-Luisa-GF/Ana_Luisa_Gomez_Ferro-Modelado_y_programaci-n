@@ -13,7 +13,6 @@ int main() {
 
     if (mi_servidor.iniciarServidor()) {
         mi_servidor.escuchar();
-        printf("El servidor esta escuchando (para cerrarlo use Ctrl + C)\n");
     } else {
         std::cerr << "Fallo al levantar el servidor." << std::endl;
     }

@@ -16,20 +16,31 @@ void AlcanceCliente::setSesionActiva(const bool& estado_sesion){
 }
 
 
-const std::string AlcanceCliente::getUsername(){
+const std::string& AlcanceCliente::getUsername(){
     return username;
 }
 
 
-const std::string AlcanceCliente::getStatus(){
+const std::string& AlcanceCliente::getStatus(){
     return status;
 }
 
 
-const bool AlcanceCliente::getSesionActiva(){
+const bool& AlcanceCliente::getSesionActiva(){
     return sesionActiva;
 }
 
+
+const std::unordered_set<std::string>& AlcanceCliente::getInvitaciones(){
+    return invitaciones;
+}
+
+std::vector<std::string> AlcanceCliente::getSalas(){
+    std::vector<std::string> mis_salas;
+    for(const auto&par : salas)
+        mis_salas.push_back(par.first);
+    return mis_salas;    
+}
 
 void AlcanceCliente::agregarUsuario(const std::string& username, const std::string& status) {
     auto it = listaUsuarios.find(username);
@@ -105,8 +116,4 @@ void AlcanceCliente::agregarInvitacion(const std::string& nombre_sala){
 
 void AlcanceCliente::quitarInvitacion(const std::string& nombre_sala){
     invitaciones.erase(nombre_sala);
-}
-
-const std::unordered_set<std::string>& AlcanceCliente::getInvitaciones() const{
-    return invitaciones;
 }
