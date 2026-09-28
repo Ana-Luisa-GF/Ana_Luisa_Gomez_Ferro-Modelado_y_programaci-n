@@ -4,7 +4,8 @@
 #include <cerrno>  
 #include <cstring>
 #include <cstdio>
-
+#include <csignal>
+#include <algorithm>
 
 Servidor::Servidor(int puerto){
     this->puerto = puerto;
@@ -71,15 +72,55 @@ void Servidor:: escuchar(){
         cliente_socket = accept(sockfd, (struct sockaddr*)&clientAddress, &clientLen);
 
         if(cliente_socket == -1){
+            if (!ejecutando) 
+                break;
             fprintf(stderr,"Error al intentar conectar al cliente: %s\n", strerror(errno));
             continue;
         }
 
        ManejadorCliente* cliente = new ManejadorCliente(cliente_socket , contenedor);
-        
-        std::thread([cliente]() {
+       listaClientes.push_back(cliente_socket);        
+
+        std::thread([this, cliente, cliente_socket]() {
             cliente->escuchar();
+
+            {
+                std::lock_guard<std::mutex> lock(mtxClientes);
+                auto it = std::find(listaClientes.begin(), listaClientes.end(), cliente_socket);
+                if (it != listaClientes.end()) {
+                    listaClientes.erase(it);
+                }
+            }
+           
             delete cliente; 
         }).detach();
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(mtxClientes);
+        for (int socket_cliente : listaClientes) {
+            if (socket_cliente != -1) {
+                shutdown(socket_cliente, SHUT_RDWR);
+                close(socket_cliente);
+            }
+        }
+        listaClientes.clear();
+    }
+
+    for(int& sockfd : listaClientes){
+        if (sockfd != -1) {
+            shutdown(sockfd, SHUT_RDWR);
+            close(sockfd);
+            sockfd = -1;
+        }
+    }
+}
+
+void Servidor::detener() {
+    ejecutando = false;
+    if (sockfd != -1) {
+        shutdown(sockfd, SHUT_RDWR);
+        close(sockfd);
+        sockfd = -1;
     }
 }

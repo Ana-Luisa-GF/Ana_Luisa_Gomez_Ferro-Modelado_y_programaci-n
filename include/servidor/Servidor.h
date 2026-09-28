@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include <thread>
+#include <mutex>
 #include <gtest/gtest.h>
 
 /**
@@ -29,7 +30,9 @@ private:
     int puerto; /**< Puerto de red en el cual el servidor aceptará conexiones. */
     struct sockaddr_in direccion; /**< Estructura de configuración del socket (Familia AF_INET, puerto e IP local). */
     bool ejecutando; /**< Bandera de control para el bucle principal de escucha. */
-    ManejadorEstados contenedor /**< Administrador de estados para registrar los clientes activos y sus peticiones.*/;
+    ManejadorEstados contenedor; /**< Administrador de estados para registrar los clientes activos y sus peticiones.*/
+    std::vector<int> listaClientes; /**< Lista con los descriptores de socket de los clientes */
+    std::mutex mtxClientes; /**< Mutex para el acceso seguro a 'listaClientes' */
 
 public:
     /**
@@ -65,7 +68,10 @@ public:
      */
     void escuchar();
     
-   
+    /**
+     * @brief cierra limpiamente el servidor
+     */
+    void detener(); 
 };
 
 #endif
