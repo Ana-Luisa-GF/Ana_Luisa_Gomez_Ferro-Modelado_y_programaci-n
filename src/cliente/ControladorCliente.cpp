@@ -134,9 +134,11 @@ void ControladorCliente::capturarInstruccion(std::string mensaje){
     }
     if(primer_comando == "/invitaciones"){
         vista->mostrarInvitaciones(datos->getInvitaciones());
+        return;
     }
     if(primer_comando == "/mis_salas"){
         vista->mostrarSalas(datos->getSalas());
+        return;
     }
     pedirServ->mensajePublico(mensaje); 
 }
