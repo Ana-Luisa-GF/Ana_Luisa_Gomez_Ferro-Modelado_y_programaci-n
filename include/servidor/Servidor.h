@@ -1,7 +1,7 @@
 #ifndef SERVIDOR_H
 #define SERVIDOR_H
 
-#include "ManejadorEstados.h"
+#include "servidor/ManejadorEstados.h"
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <map>

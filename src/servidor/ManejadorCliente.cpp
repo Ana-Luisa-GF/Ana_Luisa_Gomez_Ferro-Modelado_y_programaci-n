@@ -1,5 +1,6 @@
-#include "ManejadorCliente.h"
-#include "ManejadorEstados.h"
+#include "servidor/Servidor.h"
+#include "servidor/ManejadorCliente.h"
+#include "servidor/ManejadorEstados.h"
 #include <sys/socket.h>
 #include <unistd.h> 
 #include <cerrno> 
@@ -284,7 +285,7 @@ void ManejadorCliente::identificarCliente(std::string json_recibido){
         msg_servidor.datos["type"]= "RESPONSE";
         msg_servidor.datos["operation"]= "IDENTIFY";
         msg_servidor.datos["result"]= "USER_ALREADY_EXISTS";
-        msg_servidor.datos["extra"]= cliente.username;
+        msg_servidor.datos["extra"]= user;
 
         std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
         send(cliente.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
@@ -440,9 +441,15 @@ void ManejadorCliente::crearSala(MensajeProtocolo &msg){
             return;
 
     if (sala.length() > 16){
+        MensajeProtocolo msg_servidor;
+        msg_servidor.datos["type"]= "RESPONSE";
+        msg_servidor.datos["operation"]= "INVALID";
+        msg_servidor.datos["result"]= "INVALID";
+
+        std::string mensaje_enviar =  ConstructorMensajes::armarMensaje(msg_servidor);
+        send(cliente.socket_cliente, mensaje_enviar.c_str(), mensaje_enviar.length(), 0);
         desconectarcliente();
-        ejecutando = false;
-        return;
+        return;    
     }
     
     MensajeProtocolo msg_servidor;

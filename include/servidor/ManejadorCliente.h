@@ -1,7 +1,7 @@
 #ifndef MANEJADORCLIENTE
 #define MANEJADORCLIENTE
-#include "ConstructorMensajes.h"
-#include "DatosCliente.h"
+#include "comunes/ConstructorMensajes.h"
+#include "servidor/DatosCliente.h"
 #include <map>
 #include <string>
 #include <vector>

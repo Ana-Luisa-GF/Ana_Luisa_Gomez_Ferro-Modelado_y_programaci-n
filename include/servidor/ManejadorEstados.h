@@ -1,6 +1,6 @@
 #ifndef MANEJADOR_ESTADOS_H
 #define MANEJADOR_ESTADOS_H
-#include "DatosCliente.h"
+#include "servidor/DatosCliente.h"
 #include <string>
 #include <unordered_map>
 #include <map>

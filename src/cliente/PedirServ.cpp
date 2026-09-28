@@ -1,4 +1,4 @@
-#include "PedirServ.h"
+#include "cliente/PedirServ.h"
 #include <sys/socket.h>
 
 PedirServ::PedirServ(int clientSocket) {
