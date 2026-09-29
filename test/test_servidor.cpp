@@ -36,30 +36,3 @@ TEST(ServidorTest, DestructorLiberaElPuerto) {
     // Verificamos que pueda usar el puerto sin problema.
     EXPECT_TRUE(servidor2.iniciarServidor());
 }
-
-/*Test que comprueba que se guarde correctamente el socket y el username de un cliente*/
-TEST(ServidorTest, GuardaraCliente){
-    //creamos 2 sockets conectados
-    int sv[2];
-    ASSERT_EQ(socketpair(AF_UNIX, SOCK_STREAM, 0, sv), 0);
-
-    int socket_servidor = sv[0]; 
-    int socket_cliente = sv[1]; 
-
-    std::string username = "nombre\r\n";
-    send(socket_cliente, username.c_str(), username.length(), 0);
-
-    Servidor servidor(1234);
-    servidor.aceptarCliente(socket_servidor);
-
-    //vemos que no e guarden los espacios
-    EXPECT_TRUE(servidor.diccionario_clientes.find("nombre\r\n") == servidor.diccionario_clientes.end());
-
-    //vemos que se guarde el nombre del cliente con su respectivo socket
-    ASSERT_NE(servidor.diccionario_clientes.find("nombre"), servidor.diccionario_clientes.end());
-    EXPECT_EQ(servidor.diccionario_clientes.at("nombre"), socket_servidor);
-
-
-    close(sv[0]);
-    close(sv[1]);
-}

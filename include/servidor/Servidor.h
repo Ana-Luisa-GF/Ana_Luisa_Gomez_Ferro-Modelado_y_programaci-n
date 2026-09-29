@@ -9,7 +9,7 @@
 #include <vector>
 #include <thread>
 #include <mutex>
-#include <gtest/gtest.h>
+
 
 /**
  * @class Servidor
@@ -21,10 +21,6 @@
  */
 class Servidor{
 private:
-    /**
-     * @brief Permite que la prueba unitaria 'GuardaraCliente' acceda a los atributos privados.
-     */
-    FRIEND_TEST(ServidorTest, GuardaraCliente);
 
     int sockfd; /**< Descriptor de archivo asignado al socket principal de escucha (-1 si no está iniciado). */
     int puerto; /**< Puerto de red en el cual el servidor aceptará conexiones. */

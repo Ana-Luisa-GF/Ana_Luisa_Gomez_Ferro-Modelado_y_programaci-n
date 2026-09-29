@@ -57,3 +57,32 @@ if(DOXYGEN_FOUND)
 else()
     message(STATUS "Doxygen no fue encontrado. La documentación no estara disponible")
 endif()
+
+find_package(GTest REQUIRED)
+
+#Test.
+add_executable(test_servidor 
+    test/test_servidor.cpp
+    src/servidor/Servidor.cpp
+    src/servidor/ManejadorCliente.cpp
+    src/servidor/ManejadorEstados.cpp
+    src/comunes/ConstructorMensajes.cpp
+    src/comunes/cJSON.c
+)
+
+target_include_directories(test_servidor PRIVATE 
+    include 
+    include/servidor 
+    include/comunes
+)
+
+target_link_libraries(test_servidor PRIVATE GTest::gtest GTest::gtest_main pthread)
+
+# Ejecución de los test.
+add_custom_command(
+    TARGET test_servidor POST_BUILD
+    COMMAND $<TARGET_FILE:test_servidor>
+    COMMENT "Ejecutando pruebas de Servidor..."
+)
+
+add_dependencies(servidor test_servidor)
