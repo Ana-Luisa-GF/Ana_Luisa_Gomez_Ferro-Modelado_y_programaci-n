@@ -1,5 +1,3 @@
-
-```latex
 \documentclass[11pt,a4paper]{article}
 
 % --- PAQUETES PRINCIPALES ---
@@ -14,6 +12,7 @@
 \usepackage{hyperref}
 \usepackage{cite}
 \usepackage{microtype}
+\usepackage[most]{tcolorbox} % Paquete para las Tarjetas de Responsabilidad (CRC)
 
 % Configuración de hipervínculos
 \hypersetup{
@@ -56,29 +55,111 @@ Para comprender más a fondo el problema se dividirá en problemas más pequeño
 
 \subsection{Diseño del Programa del Servidor}
 
-Para el diseño del servidor, siguiendo el principio de responsabilidad única, se dividió el problema en múltiples clases especializadas:
+Para el diseño del servidor, siguiendo el principio de responsabilidad única, se dividió el problema en múltiples clases especializadas. A continuación, se presentan las **Tarjetas de Responsabilidad de Clases (Tarjetas CRC)** que detallan las responsabilidades y colaboradores directos de cada una de ellas:
 
-La clase \textbf{Servidor} tiene la responsabilidad de administrar la creación del socket pasivo (escucha), vincular la dirección IP y el puerto (\texttt{bind}), poner el socket en modo receptivo (\texttt{listen}) y aceptar conexiones entrantes (\texttt{accept}). La clase Servidor no procesa peticiones de mensajería; al aceptar un cliente mediante \texttt{accept()}, instancia un objeto \texttt{ManejadorCliente} al que le pasa el socket del cliente y una instancia de la clase \textbf{ManejadorEstados} que es compartida por todos, ejecutándola en su propio hilo de ejecución independiente. Esto evita que el bucle principal de red se bloquee con los mensajes de los clientes. Para cerrar el programa, captura la señal \texttt{SIGINT} (Ctrl + C) mediante un manejador global en el \texttt{main} que invoca el método detener, cerrando el socket pasivo y desconectando los sockets de los clientes activos.
+% --- TARJETA CRC: Servidor ---
+\begin{tcolorbox}[colback=white,colframe=black,title=\textbf{Tarjeta CRC: Servidor}, fonttitle=\bfseries]
+\textbf{Responsabilidades:}
+\begin{itemize}
+    \item Inicializar y configurar el socket principal de escucha (\texttt{iniciarServidor()}).
+    \item Aceptar conexiones entrantes de clientes mediante el bucle principal (\texttt{escuchar()}).
+    \item Lanzar un hilo independiente instanciando \texttt{ManejadorCliente} por cada conexión.
+    \item Liberar recursos y cerrar conexiones de forma limpia al recibir la señal de paro (\texttt{detener()}).
+\end{itemize}
+\tcblower
+\textbf{Colaboradores:} \texttt{ManejadorEstados}, \texttt{ManejadorCliente}
+\end{tcolorbox}
 
-La clase \textbf{ManejadorCliente} brinda atención exclusiva a un cliente gestionando su flujo completo de vida en su propio hilo. Extrae los mensajes procesando el flujo de bytes entrantes por el socket para fragmentar y retornar las cadenas cJSON recibidas. Utiliza la clase \textbf{ConstructorMensajes} para transformar la cadena JSON en una estructura de información (\texttt{MensajeProtocolo}). Posteriormente, un despachador de acciones lee la solicitud (IDENTIFY, NEW\_ROOM, PUBLIC\_TEXT, etc.) y manda a llamar a un método auxiliar especializado (como \texttt{mensajePublico} o \texttt{crearSala}), los cuales realizan las peticiones o modificaciones necesarias a la instancia de \textbf{ManejadorEstados}.
+% --- TARJETA CRC: ManejadorCliente ---
+\begin{tcolorbox}[colback=white,colframe=black,title=\textbf{Tarjeta CRC: ManejadorCliente}, fonttitle=\bfseries]
+\textbf{Responsabilidades:}
+\begin{itemize}
+    \item Gestionar la comunicación exclusiva de un cliente individual en su propio hilo (\texttt{escuchar()}).
+    \item Extraer y reconstruir cadenas JSON entrantes desde el socket (\texttt{recibirMensaje()}).
+    \item Parsear paquetes JSON y despachar acciones (\texttt{descifrarMensaje()}).
+    \item Ejecutar las operaciones del protocolo: \texttt{identificarCliente()}, \texttt{cambiarEstado()}, \texttt{mensajePrivado()}, \texttt{mensajePublico()}, \texttt{crearSala()}, \texttt{invitarSala()}, \texttt{aceptarInvitacion()}, \texttt{mensajeSala()}, \texttt{getUsuariosSala()}, \texttt{abandonarSala()}, \texttt{desconectarcliente()}.
+\end{itemize}
+\tcblower
+\textbf{Colaboradores:} \texttt{ManejadorEstados}, \texttt{ConstructorMensajes}, \texttt{datosCliente}
+\end{tcolorbox}
 
-La clase \textbf{ManejadorEstados} actúa como el núcleo de datos compartido, almacenando la lista global de clientes activos, sus nombres, sus sockets, sus estados y la estructura de salas con sus respectivos miembros. Al ser un recurso compartido al que múltiples hilos \texttt{ManejadorCliente} acceden simultáneamente, todos sus métodos de lectura y escritura están protegidos internamente con exclusión mutua (\texttt{std::mutex} / \texttt{std::lock\_guard}). Además, controla el tiempo de vida de las salas (eliminando una sala automáticamente cuando su número de integrantes llega a cero) y mantiene a los usuarios de la lista global y de las respectivas salas mediante métodos que permiten acceder a ellos.
+% --- TARJETA CRC: ManejadorEstados ---
+\begin{tcolorbox}[colback=white,colframe=black,title=\textbf{Tarjeta CRC: ManejadorEstados}, fonttitle=\bfseries]
+\textbf{Responsabilidades:}
+\begin{itemize}
+    \item Administrar el registro global en memoria de usuarios activos y cuartos de chat (\texttt{clientes}, \texttt{contenedor\_cuartos}).
+    \item Proteger el acceso concurrente entre múltiples hilos usando exclusión mutua (\texttt{mutex\_clientes}, \texttt{mutex\_cuartos}).
+    \item Validar existencias y obtener datos de usuarios (\texttt{hayCliente()}, \texttt{darCliente()}, \texttt{getListaClientes()}).
+    \item Gestionar la creación, unirse y eliminación automática de salas vacías (\texttt{crearSala()}, \texttt{entrarSala()}, \texttt{salirSala()}, \texttt{cuartoUsuarios()}).
+\end{itemize}
+\tcblower
+\textbf{Colaboradores:} \texttt{datosCliente}
+\end{tcolorbox}
 
-Antes de llegar a este diseño final evalúe otras alternativas que terminaron siendo inviables por la complejidad que implicaban o por ser muy ineficientes y desordenadas. Al principio se me ocurrió tener una única lista grande guardada en el servidor donde vivieran todos los usuarios con sus sockets, sus datos y las salas a las que pertenecían, y cada vez que un cliente quería hacer algo (por ejemplo, mandar un mensaje a una sala) tenía que recorrer a todos los clientes registrados, checar uno por uno quiénes estaban metidos en esa sala específica y enviarles el mensaje. Aunque parecía fácil de pensar al inicio, me di cuenta de que era mala idea por varias razones: hacía búsquedas innecesarias (si había 100 usuarios conectados y solo 3 pertenecían a la sala, tenía que revisar a los 100 de todos modos) y, debido a que todos los hilos accederían todo el tiempo a ella, seguramente se volvería un proceso muy lento; además, mezclaba responsabilidades porque un solo cliente no debería tener la carga de andar buscando y organizando a los demás. Por eso descarté esa idea antes de ponerme a programar y decidí crear la clase ManejadorEstados.
+% --- TARJETA CRC: datosCliente ---
+\begin{tcolorbox}[colback=white,colframe=black,title=\textbf{Tarjeta CRC: Struct datosCliente}, fonttitle=\bfseries]
+\textbf{Responsabilidades:}
+\begin{itemize}
+    \item Servir como contenedor de datos con la información individual del cliente (\texttt{socket\_cliente}, \texttt{username}, \texttt{estado}).
+    \item Almacenar conjuntos de salas activas y pendientes de invitación (\texttt{salas}, \texttt{invitaciones}).
+\end{itemize}
+\tcblower
+\textbf{Colaboradores:} N/A (Estructura de datos pasiva)
+\end{tcolorbox}
+
+Antes de llegar a este diseño final evalué otras alternativas que terminaron siendo inviables por la complejidad que implicaban o por ser muy ineficientes y desordenadas. Al principio se me ocurrió tener una única lista grande guardada en el servidor donde vivieran todos los usuarios con sus sockets, sus datos y las salas a las que pertenecían, y cada vez que un cliente quería hacer algo (por ejemplo, mandar un mensaje a una sala) tenía que recorrer a todos los clientes registrados, checar uno por uno quiénes estaban metidos en esa sala específica y enviarles el mensaje. Aunque parecía fácil de pensar al inicio, me di cuenta de que era mala idea por varias razones: hacía búsquedas innecesarias (si había 100 usuarios conectados y solo 3 pertenecían a la sala, tenía que revisar a los 100 de todos modos) y, debido a que todos los hilos accederían todo el tiempo a ella, seguramente se volvería un proceso muy lento; además, mezclaba responsabilidades porque un solo cliente no debería tener la carga de andar buscando y organizando a los demás. Por eso descarté esa idea antes de ponerme a programar y decidí crear la clase ManejadorEstados.
 
 Por otro lado, intenté usar en ManejadorEstados el patrón Singleton, ya que solo existe una instancia de él en todo el servidor. Pero me di cuenta de que no era buena idea porque seguirlo implicaba esconder el constructor y obligar a todo el código a buscar una instancia global estática. Por eso preferí que el servidor creara la instancia al arrancar y se la pasara como referencia a cada cliente cuando se conecta, lo que era mucho más fácil y limpio.
 
 \subsection{Diseño del Programa del Cliente}
 
-Al igual que con el servidor, el diseño del cliente se planificó siguiendo el principio de responsabilidad única, pero además, dadas las características del programa, se decidió usar el patrón Modelo-Vista-Controlador (MVC) para la organización de las clases:
+Al igual que con el servidor, el diseño del cliente se planificó siguiendo el principio de responsabilidad única, pero además, dadas las características del programa, se decidió usar el patrón Modelo-Vista-Controlador (MVC) para la organización de las clases, representadas formalmente por las siguientes tarjetas de responsabilidad:
 
-El Modelo está representado por la clase \textbf{AlcanceCliente}, componente de la arquitectura encargado de representar y salvaguardar el estado global del cliente en memoria. Mantiene la información del usuario (nombre y estado), la lista de usuarios conectados al servidor y la estructura de las salas de chat a las que pertenece el cliente (con sus respectivos miembros). Como lo especifica el patrón de diseño, el modelo no conoce detalles sobre la interfaz gráfica ni sobre el socket de red. Su única labor es mantener en sincronía con el servidor la información local y ofrecer métodos para consultar o actualizar dichos datos.
+% --- TARJETA CRC: AlcanceCliente ---
+\begin{tcolorbox}[colback=white,colframe=black,title=\textbf{Tarjeta CRC: AlcanceCliente (Modelo)}, fonttitle=\bfseries]
+\textbf{Responsabilidades:}
+\begin{itemize}
+    \item Mantener en memoria el estado local del cliente (\texttt{username}, \texttt{estado}).
+    \item Almacenar las listas locales de usuarios conectados y las salas activas con sus miembros.
+    \item Proveer métodos seguros para consultar y actualizar el estado desde las respuestas del servidor.
+\end{itemize}
+\tcblower
+\textbf{Colaboradores:} \texttt{ControladorCliente}, \texttt{RecibirServ}
+\end{tcolorbox}
 
-La Vista se implementó en la clase \textbf{VistaCliente}, encargada de la presentación e interfaz de usuario en la consola. Únicamente tiene métodos de salida que imprimen las acciones que pasan en el chat. Tiene métodos dedicados para cada respuesta o notificación que el servidor pueda generar (mensajes recibidos, notificaciones de unirse/abandonar sala, alertas de cambio de estado), además de algunos métodos para imprimir cosas extra que no vienen especificadas en el protocolo con el fin de hacer la experiencia del cliente más óptima. La vista jamás lee del socket, ni analiza JSON, ni toma decisiones; simplemente recibe datos procesados y los muestra de forma estética en la pantalla del usuario.
+% --- TARJETA CRC: VistaCliente ---
+\begin{tcolorbox}[colback=white,colframe=black,title=\textbf{Tarjeta CRC: VistaCliente (Vista)}, fonttitle=\bfseries]
+\textbf{Responsabilidades:}
+\begin{itemize}
+    \item Formatear y proyectar la salida del chat en la consola.
+    \item Imprimir notificaciones del sistema, mensajes privados/públicos/de sala y alertas de errores de forma clara para el usuario.
+\end{itemize}
+\tcblower
+\textbf{Colaboradores:} \texttt{ControladorCliente}
+\end{tcolorbox}
 
-El Controlador se encuentra estructurado en la clase \textbf{ControladorCliente}, la cual orquesta la interacción entre el Modelo, la Vista y la clase encargada de recibir las respuestas del Servidor. Se encarga de la captura y análisis manteniendo el bucle principal que lee las entradas del teclado del usuario y analiza la sintaxis de los comandos en la consola (por ejemplo: \texttt{/msg}, \texttt{/unirse}, \texttt{/invitar}, \texttt{/status}). También actúa como intermediario: si el usuario solicita ver una información local (como consultar sus salas actuales), el Controlador consulta directamente al Modelo (\texttt{AlcanceCliente}) y le pasa los datos a la Vista (\texttt{VistaCliente}) para que los imprima. Si la acción requiere comunicarse con el servidor, invoca a la clase auxiliar \textbf{PedirServ} para que empaque y envíe la petición en formato cJSON.
+% --- TARJETA CRC: ControladorCliente ---
+\begin{tcolorbox}[colback=white,colframe=black,title=\textbf{Tarjeta CRC: ControladorCliente (Controlador)}, fonttitle=\bfseries]
+\textbf{Responsabilidades:}
+\begin{itemize}
+    \item Mantener el bucle principal de lectura de comandos del usuario desde la terminal.
+    \item Interpretar los comandos introducidos (\texttt{/msg}, \texttt{/unirse}, \texttt{/invitar}, \texttt{/status}, etc.).
+    \item Delegar peticiones hacia la red utilizando \texttt{PedirServ} y actualizar la \texttt{VistaCliente}.
+\end{itemize}
+\tcblower
+\textbf{Colaboradores:} \texttt{AlcanceCliente}, \texttt{VistaCliente}, \texttt{PedirServ}
+\end{tcolorbox}
 
-Para llevar un control adecuado de las solicitudes y respuestas con el servidor, se crearon dos clases especializadas que interactúan con la arquitectura MVC. Por un lado, \textbf{PedirServ} es utilizada por varios métodos del Controlador para la salida de datos, traduciendo cada petición del usuario a un paquete cJSON enviado al socket. Por otro lado, \textbf{RecibirServ} ejecuta su propio hilo de lectura, escuchando continuamente la llegada de paquetes JSON desde el servidor, descomponiendo la respuesta, actualizando directamente el Modelo (\texttt{AlcanceCliente}) y notificando al Controlador (que posteriormente notificará a la Vista) para proyectar la actualización en pantalla en tiempo real.
+% --- TARJETA CRC: PedirServ y RecibirServ ---
+\begin{tcolorbox}[colback=white,colframe=black,title=\textbf{Tarjeta CRC: PedirServ y RecibirServ (Red)}, fonttitle=\bfseries]
+\textbf{Responsabilidades:}
+\begin{itemize}
+    \item \textbf{PedirServ}: Empaquetar comandos en formato cJSON y transmitirlos por el socket.
+    \item \textbf{RecibirServ}: Escuchar continuamente el socket en un hilo dedicado, procesar paquetes entrantes, actualizar el modelo (\texttt{AlcanceCliente}) y notificar a la vista.
+\end{itemize}
+\tcblower
+\textbf{Colaboradores:} \texttt{ControladorCliente}, \texttt{AlcanceCliente}
+\end{tcolorbox}
 
 Antes de llegar a este diseño evalúe otras alternativas que terminaron siendo inviables por la complejidad que implican o por ser muy desordenadas. Al inicio quería una sola clase que se encargara de leer de la terminal, procesar los sockets y mostrar los mensajes. Pero lo descarté cuando me percaté del problema que había por el bloqueo entre la recepción de mensajes del servidor y la recepción de mensajes del cliente. Si una sola clase atiende al usuario y al servidor al mismo tiempo, el programa se quedaba congelado esperando a que la persona presione Enter en la terminal, y los mensajes enviados por otros usuarios no se mostraban en pantalla hasta que el usuario escribiera algo, arruinando la experiencia en tiempo real del chat. Además, decidí usar el patrón MVC porque me permitía abordar el problema de una forma mucho más organizada, lo que me ayuda a hacer el programa mucho más rápido y a incluir cosas extra. Como la Vista (\texttt{VistaCliente}) no usa sockets ni lógica de comandos, me permitía incluir detalles extra que aportaran estilo al programa sin preocuparme por la lógica detrás del cliente; incluso pensé en tener una vista en terminal de forma temporal y luego incluir una interfaz gráfica (aunque no me dio tiempo).
 
@@ -118,10 +199,14 @@ H. Lu, \textit{tcp-server-}, Repositorio de GitHub. [En línea]. Disponible en: 
 Wikibooks, \textit{Programación en C/Sockets - Cliente}, 2023. [En línea]. Disponible en: \url{https://es.wikibooks.org/wiki/Programaci%C3%B3n_en_C/Sockets#Cliente_2}
 
 \bibitem{share_google}
-Documento compartido de apoyo. [En línea]. Disponible en: \url{https://share.google/xJ4dvtFrhjUvvUOb0}
+Documento compartido de apoyo 1. [En línea]. Disponible en: \url{https://share.google/xJ4dvtFrhjUvvUOb0}
+
+\bibitem{share_google2}
+Documento compartido de apoyo 2. [En línea]. Disponible en: \url{https://share.google/uUpacc6GOIdKaSD0Q}
+
+\bibitem{geeks_mvc}
+GeeksforGeeks, \textit{MVC Design Pattern in System Design}, 2023. [En línea]. Disponible en: \url{https://www-geeksforgeeks-org.translate.goog/system-design/mvc-design-pattern/?_x_tr_sl=en&_x_tr_tl=es&_x_tr_hl=es&_x_tr_pto=tc&_x_tr_hist=true}
 
 \end{thebibliography}
 
 \end{document}
-
-```
